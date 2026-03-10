@@ -686,28 +686,28 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
      * R/W extensions requested for MSA code (0x8C–0x91)
      * ------------------------------------------------------------------ */
 
-    case 0x8C:   /* PHASE tuner (milli-units → V) */
+    case 0x8C:   /* PHASE tuner (centi-units → V) */
       if (isw) {
         st_TUNER_PHASE_milli = data;
-        g_v3 = data / 1000.0f;
+        g_v3 = data / 100.0f;
       } else {
         d = st_TUNER_PHASE_milli;
       }
       break;
 
-    case 0x8D:   /* RING1 tuner (milli-units → V) */
+    case 0x8D:   /* RING1 tuner (centi-units → V) */
       if (isw) {
         st_TUNER_RING1_milli = data;
-        g_v1 = data / 1000.0f;
+        g_v1 = data / 100.0f;
       } else {
         d = st_TUNER_RING1_milli;
       }
       break;
 
-    case 0x8E:   /* RING2 tuner (milli-units → V) */
+    case 0x8E:   /* RING2 tuner (centi-units → V) */
       if (isw) {
         st_TUNER_RING2_milli = data;
-        g_v2 = data / 1000.0f;
+        g_v2 = data / 100.0f;
       } else {
         d = st_TUNER_RING2_milli;
       }
@@ -722,12 +722,12 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
       }
       break;
 
-    case 0x90:   /* Gain Bias (raw signed 16-bit) */
+    case 0x90:   /* Gain Bias (centi-units → V) */
       if (isw) {
-        st_BIAS_raw = (int16_t)data;
-        g_gain = (float)(int16_t)data;
+        st_BIAS_raw = data;
+        g_gain = data / 100.0f;
       } else {
-        d = (uint16_t)st_BIAS_raw;
+        d = st_BIAS_raw;
       }
       break;
 
