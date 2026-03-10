@@ -1,0 +1,20 @@
+--cpu Cortex-M3
+".\obj\main.o"
+".\obj\aducm430_setup.o"
+".\obj\iramcode.o"
+".\obj\nano_hw.o"
+".\obj\nano_lut_50ghz.o"
+".\obj\nanoitla.o"
+".\obj\adclib.o"
+".\obj\clklib.o"
+".\obj\daclib.o"
+".\obj\diolib.o"
+".\obj\gptlib.o"
+".\obj\urtlib.o"
+".\obj\wdtlib.o"
+".\obj\startup_aducm430.o"
+".\obj\system_aducm430.o"
+--library_type=microlib --strict --scatter ".\RTE\Device\ADuCM433\ADuCM433.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Lst\M430_Adc.map" -o .\Obj\M430_Adc.axf

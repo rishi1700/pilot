@@ -1,0 +1,140 @@
+Dependencies for Project 'M433_Adc', Target 'Adc': (DO NOT MODIFY !)
+CompilerVersion: 6220000::V6.22::ARMCLANG
+F (..\main.c)(0x698B7AD8)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/main.o -MMD)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+I (RTE\Device\ADuCM433\AdcLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\DacLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\DioLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\UrtLib.h)(0x67323B0C)
+I (..\iramCode.h)(0x62A1165C)
+I (RTE\Device\ADuCM433\WdtLib.h)(0x67323B0C)
+I (..\nano_globals.h)(0x693C5A26)
+F (..\ADuCM430_Setup.c)(0x68ED7390)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/aducm430_setup.o -MMD)
+I (RTE\Device\ADuCM433\AdcLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+I (RTE\Device\ADuCM433\ClkLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\Common.h)(0x691DF210)
+I (RTE\Device\ADuCM433\DacLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\DioLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\UrtLib.h)(0x67323B0C)
+I (RTE\Device\ADuCM433\WdtLib.h)(0x67323B0C)
+F (..\iramCode.c)(0x62A1165C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/iramcode.o -MMD)
+I (..\iramCode.h)(0x62A1165C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (..\nano_globals.h)(0x693C5A26)()
+F (..\nano_hw.c)(0x6924867E)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/nano_hw.o -MMD)
+I (..\nano_hw.h)(0x6920A817)
+F (..\nano_hw.h)(0x6920A817)()
+F (..\nano_lut_50ghz.c)(0x6967B1DF)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/nano_lut_50ghz.o -MMD)
+I (..\nano_lut_50ghz.h)(0x6967ACF0)
+I (..\nano_hw.h)(0x6920A817)
+I (..\nano_globals.h)(0x693C5A26)
+F (..\nano_lut_50ghz.h)(0x6967ACF0)()
+F (..\nanoITLA.c)(0x698239D8)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/nanoitla.o -MMD)
+I (..\nano_lut_50ghz.h)(0x6967ACF0)
+I (..\nano_globals.h)(0x693C5A26)
+F (RTE/Device/ADuCM433/ADuCM433.sct)(0x67323B0C)()
+F (RTE/Device/ADuCM433/AdcLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/adclib.o -MMD)
+I (RTE\Device\ADuCM433\AdcLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/AdcLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/ClkLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/clklib.o -MMD)
+I (RTE\Device\ADuCM433\ClkLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/ClkLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/DacLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/daclib.o -MMD)
+I (RTE\Device\ADuCM433\DacLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/DacLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/DioLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/diolib.o -MMD)
+I (RTE\Device\ADuCM433\DioLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/DioLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/GptLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/gptlib.o -MMD)
+I (RTE\Device\ADuCM433\GptLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/GptLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/UrtLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/urtlib.o -MMD)
+I (RTE\Device\ADuCM433\UrtLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/UrtLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/WdtLib.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/wdtlib.o -MMD)
+I (RTE\Device\ADuCM433\WdtLib.h)(0x67323B0C)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/WdtLib.h)(0x67323B0C)()
+F (RTE/Device/ADuCM433/startup_ADuCM430.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/startup_aducm430.o -MMD)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
+F (RTE/Device/ADuCM433/system_ADuCM430.c)(0x67323B0C)(-xc -std=c11 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char-D__EVAL -D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ..-I./RTE/Device/ADuCM433-I./RTE/_Adc-IC:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common-D__UVISION_VERSION="541" -D_RTE_ -D__ADUCM433__-o ./obj/system_aducm430.o -MMD)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\adi_processor.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_device.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_typedefs.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\ADuCM433_addr_rdef.h)(0x691DF210)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\ARM\CMSIS\6.1.0\CMSIS\Core\Include\core_cm3.h)(0x664C3AF8)
+I (C:\Users\jorge\AppData\Local\Arm\Packs\AnalogDevices\ADuCM430_DFP\0.6.0\common\system_ADuCM430.h)(0x691DF211)
