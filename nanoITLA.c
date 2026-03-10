@@ -686,46 +686,46 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
      * R/W extensions requested for MSA code (0x8C–0x91)
      * ------------------------------------------------------------------ */
 
-    case 0x8C:   /* PHASE tuner (milli-units) */
-      if (isw) { //3.3
+    case 0x8C:   /* PHASE tuner (milli-units → V) */
+      if (isw) {
         st_TUNER_PHASE_milli = data;
-				g_v3 = data
+        g_v3 = data / 1000.0f;
       } else {
         d = st_TUNER_PHASE_milli;
       }
       break;
 
-    case 0x8D:   /* RING1 tuner (milli-units) */
+    case 0x8D:   /* RING1 tuner (milli-units → V) */
       if (isw) {
         st_TUNER_RING1_milli = data;
-				g_v1
+        g_v1 = data / 1000.0f;
       } else {
         d = st_TUNER_RING1_milli;
       }
       break;
 
-    case 0x8E:   /* RING2 tuner (milli-units) */
+    case 0x8E:   /* RING2 tuner (milli-units → V) */
       if (isw) {
         st_TUNER_RING2_milli = data;
-				g_v2
+        g_v2 = data / 1000.0f;
       } else {
         d = st_TUNER_RING2_milli;
       }
       break;
 
-    case 0x8F:   /* SOA (centi-units, matches existing debug scaling) */
+    case 0x8F:   /* SOA (centi-units → V) */
       if (isw) {
         st_SOA_centi = data;
-				g_soa
+        g_soa = data / 100.0f;
       } else {
         d = st_SOA_centi;
       }
       break;
 
-    case 0x90:   /*Gain Bias (raw signed 16-bit) */
+    case 0x90:   /* Gain Bias (raw signed 16-bit) */
       if (isw) {
         st_BIAS_raw = (int16_t)data;
-				SetGain
+        g_gain = (float)(int16_t)data;
       } else {
         d = (uint16_t)st_BIAS_raw;
       }
@@ -734,21 +734,9 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
     case 0x91:   /* TEC (raw signed 16-bit) */
       if (isw) {
         st_TEC_raw = (int16_t)data;
-				g_temp =data
+        g_temp = (float)(int16_t)data;
       } else {
         d = (uint16_t)st_TEC_raw;
-      }
-      break;
-    case 0x92:   /* Mode switch register: direct control enable */
-      if (isw) {
-        /* Enable only on ASCII "AB" (0x4142) or "CD" (0x4344); disable on 0 */
-        if (data == 0x0000) {
-          g_direct_ctrl_mode = 0;
-        } else if (data == 0x4142 || data == 0x9036) {
-          g_direct_ctrl_mode = 1;
-        }
-      } else {
-        d = (uint16_t)g_direct_ctrl_mode;
       }
       break;
     default: goto not_impl;
