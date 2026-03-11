@@ -225,18 +225,17 @@ static uint16_t st_PWR=0, st_OOP=0; static int16_t st_CTemp=2500;
 /* ------------------------------------------------------------------
  * Manufacturer-specific R/W extensions (0x8C–0x91)
  *
- * Tuners are represented as fixed-point milli-units (value * 1000):
- *   e.g. 12.12  -> 12120
- *        9.99   ->  9990
- *        5.550  ->  5550
+ * Tuners, SOA, and Gain Bias are all centi-units (value * 100):
+ *   e.g. 1.23 V -> 123
+ *        9.99 V ->  999
+ *        5.50 V ->  550
  *
- * SOA is centi-units (value * 100) to match existing debug scaling.
- * Bias/TEC are raw signed 16-bit values unless/until the real MSA map
- * specifies a scaling.
+ * TEC is a raw signed 16-bit value (no scaling) unless/until the real
+ * MSA map specifies a scaling.
  * ------------------------------------------------------------------ */
-static uint16_t st_TUNER_PHASE_milli = 0;  /* 0x8C */
-static uint16_t st_TUNER_RING1_milli = 0;  /* 0x8D */
-static uint16_t st_TUNER_RING2_milli = 0;  /* 0x8E */
+static uint16_t st_TUNER_PHASE_centi = 0;  /* 0x8C */
+static uint16_t st_TUNER_RING1_centi = 0;  /* 0x8D */
+static uint16_t st_TUNER_RING2_centi = 0;  /* 0x8E */
 
 static uint16_t st_SOA_centi  = 0;         /* 0x8F */
 static int16_t  st_BIAS_raw   = 0;         /* 0x90 */
@@ -1376,28 +1375,28 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
 
     case 0x8C:   /* PHASE tuner (centi-units → V) */
       if (isw) {
-        st_TUNER_PHASE_milli = data;
+        st_TUNER_PHASE_centi = data;
         g_v3 = data / 100.0f;
       } else {
-        d = st_TUNER_PHASE_milli;
+        d = st_TUNER_PHASE_centi;
       }
       break;
 
     case 0x8D:   /* RING1 tuner (centi-units → V) */
       if (isw) {
-        st_TUNER_RING1_milli = data;
+        st_TUNER_RING1_centi = data;
         g_v1 = data / 100.0f;
       } else {
-        d = st_TUNER_RING1_milli;
+        d = st_TUNER_RING1_centi;
       }
       break;
 
     case 0x8E:   /* RING2 tuner (centi-units → V) */
       if (isw) {
-        st_TUNER_RING2_milli = data;
+        st_TUNER_RING2_centi = data;
         g_v2 = data / 100.0f;
       } else {
-        d = st_TUNER_RING2_milli;
+        d = st_TUNER_RING2_centi;
       }
       break;
 

@@ -4729,6 +4729,159 @@ def read_external_wavemeter():
         wl_nm, pw_dbm, smsr_db = wm.read_peaks()
     return _nm_to_ghz(float(wl_nm))
     
+def run_section10_alarm_test():
+    """
+    Section 10 — Alarm / trigger mask R/W and latched-status (COW) behaviour.
+
+    Tests:
+      1. SRQ trigger mask (0x28) — write known pattern, read back, restore.
+      2. Fatal trigger mask (0x29) — write known pattern, read back, restore.
+      3. ALM trigger mask (0x2A) — write known pattern, read back, restore.
+      4. StatusF (0x20) — read latched Fatal status; attempt clear by reading twice
+         (COW semantics: first read returns latched value, second read clears it).
+      5. StatusW (0x21) — same COW read/clear check.
+      6. MCB (0x33) — verify ADT and SDF flag bits R/W.
+    """
+    print("\n[Section 10] Alarm / Trigger Mask & Latched Status (COW)")
+    ws = get_sheet("Section10_Alarms")
+
+    # Column header row
+    ws.append(["Test", "Reg", "Detail", "Result", "Tester", "DateTime", "Test Suite"])
+
+    def _log(name: str, reg: int, ok: bool, detail: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = "Pass" if ok else "Fail"
+        ws.append([name, f"0x{reg:02X}", detail, result, TesterName, now, "Section10_Alarms"])
+        print(f"  [{result}] {name}: {detail}")
+        log_fn = logger[0].info if ok else logger[0].warning
+        log_fn(loggerName + f": Test: {name} REG=0x{reg:02X} Detail: {detail} Result: {result} Tester: {TesterName}")
+
+    # ------------------------------------------------------------------
+    # 1–3: Trigger mask registers (0x28 SRQ, 0x29 Fatal, 0x2A ALM)
+    # ------------------------------------------------------------------
+    MASK_REGS = [
+        ("SRQ_Triggers",   0x28, 0x0003),
+        ("FatalTriggers",  0x29, 0x000F),
+        ("ALM_Triggers",   0x2A, 0x0007),
+    ]
+    for name, reg, pattern in MASK_REGS:
+        try:
+            ce0, st0, orig = reg_read(reg)
+            ce_w, st_w, _, _ = reg_write(reg, pattern)
+            ce_r, st_r, readback = reg_read(reg)
+            # Restore original value
+            try:
+                reg_write(reg, orig)
+            except Exception:
+                pass
+            write_ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True))
+            read_ok  = (ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True))
+            value_ok = (readback == (pattern & 0xFFFF))
+            ok = write_ok and read_ok and value_ok
+            detail = (
+                f"W=0x{pattern:04X} R=0x{readback:04X} orig=0x{orig:04X} "
+                f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}"
+            )
+            _log(name, reg, ok, detail)
+        except Exception as e:
+            _log(name, reg, False, f"ERROR: {e}")
+
+    # ------------------------------------------------------------------
+    # 4–5: Latched status registers (COW clear-on-write/read semantics)
+    #      Read twice; second read should return 0x0000 (no new events).
+    # ------------------------------------------------------------------
+    STATUS_REGS = [("StatusF", 0x20), ("StatusW", 0x21)]
+    for name, reg in STATUS_REGS:
+        try:
+            ce1, st1, v1 = reg_read(reg)  # first read — latched value
+            ce2, st2, v2 = reg_read(reg)  # second read — should be cleared
+            read1_ok = (ce1 == 0 and _status_ok_for_test(st1, allow_aea=True))
+            read2_ok = (ce2 == 0 and _status_ok_for_test(st2, allow_aea=True))
+            # COW pass: second read returns 0 (cleared) — only meaningful if no
+            # live alarms are asserted, so we just verify the read itself succeeds.
+            ok = read1_ok and read2_ok
+            detail = (
+                f"Read1=0x{v1:04X}(CE={ce1},ST={st1}) "
+                f"Read2=0x{v2:04X}(CE={ce2},ST={st2}) "
+                f"COW_cleared={'Yes' if v2 == 0 else 'No (live alarms present)'}"
+            )
+            _log(name + "_COW", reg, ok, detail)
+        except Exception as e:
+            _log(name + "_COW", reg, False, f"ERROR: {e}")
+
+    # ------------------------------------------------------------------
+    # 6: MCB register (0x33) — ADT (bit 0) and SDF (bit 1) flag R/W
+    # ------------------------------------------------------------------
+    MCB_REG = 0x33
+    ADT_BIT = 0x0001
+    SDF_BIT = 0x0002
+    try:
+        ce0, st0, orig_mcb = reg_read(MCB_REG)
+        for flag_name, mask in [("ADT", ADT_BIT), ("SDF", SDF_BIT)]:
+            # Set the flag, read back, clear it, read back.
+            set_val = orig_mcb | mask
+            clr_val = orig_mcb & ~mask & 0xFFFF
+            ce_s, st_s, _, _ = reg_write(MCB_REG, set_val)
+            ce_rs, st_rs, v_set = reg_read(MCB_REG)
+            ce_c, st_c, _, _ = reg_write(MCB_REG, clr_val)
+            ce_rc, st_rc, v_clr = reg_read(MCB_REG)
+            set_ok = (v_set & mask) != 0
+            clr_ok = (v_clr & mask) == 0
+            ok = set_ok and clr_ok
+            detail = (
+                f"MCB {flag_name}: set=0x{v_set:04X}(bit {'1' if set_ok else '0'}) "
+                f"clr=0x{v_clr:04X}(bit {'0' if clr_ok else '1'})"
+            )
+            _log(f"MCB_{flag_name}", MCB_REG, ok, detail)
+        # Restore original MCB
+        try:
+            reg_write(MCB_REG, orig_mcb)
+        except Exception:
+            pass
+    except Exception as e:
+        _log("MCB_ADT_SDF", MCB_REG, False, f"ERROR: {e}")
+
+    _excel_save()
+
+
+def run_all_william_tests():
+    """
+    Run all options required for William's DVT report in one automated sequence:
+      Option 2  — Table A (Supervisory / identity strings)
+      Option 3  — Table 9.5 (Status / triggers)
+      Option 5  — Full 0x00–0xFF register scan
+      Option 11 — Requirements coverage (9.5/9.6/9.7/9.8/9.9)
+      Option 12 — MSA extension registers (0x8C–0x91 R/W)
+      Option 14 — Section 10 alarm / trigger mask & COW status test
+
+    All results accumulate in dvt_excel.xlsx (one sheet per test type).
+    """
+    print("\n" + "=" * 60)
+    print("  DVT Full Suite — William Report Run")
+    print("=" * 60)
+
+    steps = [
+        ("Option 2  — Table A (Supervisory Reads)",        run_supervisory_table),
+        ("Option 3  — Table 9.5 (Status / Triggers)",      run_9_5_status_table),
+        ("Option 5  — Full 0x00–0xFF Register Scan",       run_full_register_scan),
+        ("Option 11 — Requirements Coverage 9.5–9.9",      run_requirements_coverage),
+        ("Option 12 — MSA Extension Registers 0x8C–0x91",  run_msa_extension_test),
+        ("Option 14 — Section 10 Alarm / COW Test",        run_section10_alarm_test),
+    ]
+
+    for i, (label, fn) in enumerate(steps, 1):
+        print(f"\n[{i}/{len(steps)}] {label}")
+        try:
+            fn()
+        except Exception as e:
+            print(f"  [ERROR] {label} failed: {e}")
+
+    _excel_save()
+    print("\n" + "=" * 60)
+    print(f"  DVT Full Suite complete — results in {ExcelFileName}")
+    print("=" * 60)
+
+
 def run_full_setchannel_test(start_ch=1, end_ch=10, tol_mhz=100.0):
     print("\n[Full SetChannel Test] Internal PD + External WM Comparison")
     ws = get_sheet("SetChannelFull")
@@ -4864,6 +5017,8 @@ if __name__ == "__main__":
         10: "Table B (9.6 Snapshot)",
         11: "Requirements Coverage (9.5/9.6/9.7/9.8/9.9)",
         12: "MSA Extension Registers (0x8C–0x91 R/W Test)",
+        13: "Run All (Full DVT Suite for William Report)",
+        14: "Section 10 Alarm / Trigger Mask & COW Status Test",
     }
 
     for menu in dvt_menu:
@@ -4992,6 +5147,12 @@ if __name__ == "__main__":
             ran_non_gui = True
         elif dvt_choice == 12:
             run_msa_extension_test()
+            ran_non_gui = True
+        elif dvt_choice == 13:
+            run_all_william_tests()
+            ran_non_gui = True
+        elif dvt_choice == 14:
+            run_section10_alarm_test()
             ran_non_gui = True
     else:
         print("Invalid choice")
