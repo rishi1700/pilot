@@ -2953,7 +2953,7 @@ def run_msa_extension_test():
         ws.append([name, msg, "Pass" if ok else "Fail", TesterName, now, "MSA_Extensions"])
 
     try:
-        write_tuners(phase_v, ring1_v, ring2_v)
+        WriteTuners(phase_v, ring1_v, ring2_v)
         rp = read_tuner("phase")
         r1 = read_tuner("ring1")
         r2 = read_tuner("ring2")
@@ -2965,7 +2965,7 @@ def run_msa_extension_test():
         print("  Tuners: FAIL", e)
 
     try:
-        write_soa(soa_v)
+        WriteSOA(soa_v)
         rs = read_soa()
         ok = (abs(rs - soa_v) <= 0.02)
         _log("SOA", ok, f"Wrote soa={soa_v} | Read soa={rs:.2f}")
@@ -2975,7 +2975,7 @@ def run_msa_extension_test():
         print("  SOA: FAIL", e)
 
     try:
-        write_bias(bias_v)
+        WriteBias(bias_v)
         rb = read_bias()
         ok = (rb == bias_v)
         _log("Bias", ok, f"Wrote bias={bias_v} | Read bias={rb}")
@@ -2985,7 +2985,7 @@ def run_msa_extension_test():
         print("  Bias: FAIL", e)
 
     try:
-        write_tec(tec_v)
+        WriteTEC(tec_v)
         rt = read_tec()
         ok = (rt == tec_v)
         _log("TEC", ok, f"Wrote tec={tec_v} | Read tec={rt}")
