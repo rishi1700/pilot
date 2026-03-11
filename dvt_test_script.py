@@ -2995,6 +2995,359 @@ def run_msa_extension_test():
         print("  TEC: FAIL", e)
 
     _excel_save()
+
+# ---------------- Section 9.6 Detail Table ----------------
+def run_9_6_detail_table():
+    """Per-register detail test for Section 9.6: General Module Configuration.
+
+    Registers:
+      0x30  Channel      RW
+      0x65  ChannelH     RW
+      0x31  Power        RW  (dBm×100, signed)
+      0x32  ResEna       RW
+      0x33  MCB          RW
+      0x34  Grid         RW  (GHz×10, signed)
+      0x66  Grid2        RW  (MHz, signed)
+      0x35  FCF1         RW  (THz)
+      0x36  FCF2         RW  (GHz×10, signed)
+      0x67  FCF3         RW  (MHz, signed)
+      0x40  LF1          RO  (THz reported)
+      0x41  LF2          RO  (GHz×10 reported)
+      0x68  LF3          RO  (MHz reported)
+      0x42  LF1Min       RO
+      0x43  LF1Max       RO
+    """
+    print("\n[Section 9.6] General Module Configuration")
+    ws = get_sheet("Section9_6")
+
+    reg_plan = [
+        ("Channel",   0x30, "RW"),
+        ("ChannelH",  0x65, "RW"),
+        ("Power",     0x31, "RW"),
+        ("ResEna",    0x32, "RW"),
+        ("MCB",       0x33, "RW"),
+        ("Grid",      0x34, "RW"),
+        ("Grid2",     0x66, "RW"),
+        ("FCF1_THz",  0x35, "RW"),
+        ("FCF2_G10",  0x36, "RW"),
+        ("FCF3_MHz",  0x67, "RW"),
+        ("LF1_THz",   0x40, "RO"),
+        ("LF2_G10",   0x41, "RO"),
+        ("LF3_MHz",   0x68, "RO"),
+        ("LF1Min",    0x42, "RO"),
+        ("LF1Max",    0x43, "RO"),
+    ]
+
+    def _decode_9_6(reg, val):
+        val = int(val) & 0xFFFF
+        if reg in (0x31,):
+            return f"{_s16_from_u16(val) / 100.0:.2f} dBm"
+        if reg in (0x34,):
+            return f"{_s16_from_u16(val) / 10.0:.1f} GHz"
+        if reg in (0x66, 0x67):
+            return f"{_s16_from_u16(val)} MHz"
+        if reg in (0x35, 0x40, 0x42, 0x43):
+            return f"{val} THz"
+        if reg in (0x36, 0x41):
+            return f"{_s16_from_u16(val) / 10.0:.1f} GHz×10"
+        return ""
+
+    for name, reg, mode in reg_plan:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            ce0, st0, v0 = reg_read(reg)
+            ok_read = (ce0 == 0 and _status_ok_for_test(st0, allow_aea=True))
+            dec = _decode_9_6(reg, v0)
+
+            if mode == "RO":
+                ok = ok_read
+                msg = (f"{name}: REG=0x{reg:02X} mode=RO OUT=0x{v0:04X} "
+                       f"CE={ce0} STATUS={st0} ({_status_name(st0)})")
+                if dec:
+                    msg += f" [{dec}]"
+            else:
+                # Write a harmless echo of the current value back to verify RW path
+                ce_w, st_w, _, _ = reg_write(reg, v0)
+                ce_r, st_r, v1 = reg_read(reg)
+                try:
+                    reg_write(reg, v0)  # restore (already same value)
+                except Exception:
+                    pass
+                ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True)
+                      and ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True)
+                      and v1 == v0)
+                msg = (f"{name}: REG=0x{reg:02X} mode=RW "
+                       f"W=0x{v0:04X} R=0x{v1:04X} "
+                       f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}")
+                if dec:
+                    msg += f" [{dec}]"
+
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Pass" if ok else "Fail",
+                       TesterName, now, "Section9.6"])
+        except Exception as e:
+            msg = f"{name}: REG=0x{reg:02X} ERROR: {e}"
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Fail", TesterName, now, "Section9.6"])
+
+    _excel_save()
+
+
+# ---------------- Section 9.7 Detail Table ----------------
+def run_9_7_fine_tune_table():
+    """Per-register detail test for Section 9.7: Fine Tune / Limits (all RO reads).
+
+    Registers:
+      0x4F  MinFreq_THz   RO
+      0x50  MinFreq_G10   RO  (GHz×10)
+      0x51  MaxFreq_THz   RO
+      0x52  MaxFreq_G10   RO  (GHz×10)
+      0x53  MinPower      RO  (dBm×100)
+      0x69  MaxPower      RO  (dBm×100)
+      0x54  LastF_THz     RO
+      0x55  LastF_G10     RO  (GHz×10)
+      0x6A  LastF_MHz     RO
+      0x56  LGrid10       RO  (GHz×10)
+      0x6B  LGrid2        RO  (MHz)
+    """
+    print("\n[Section 9.7] Fine Tune / Limits")
+    ws = get_sheet("Section9_7")
+
+    reg_plan = [
+        ("MinFreq_THz",  0x4F, "THz"),
+        ("MinFreq_G10",  0x50, "GHz×10"),
+        ("MaxFreq_THz",  0x51, "THz"),
+        ("MaxFreq_G10",  0x52, "GHz×10"),
+        ("MinPower",     0x53, "dBm×100"),
+        ("MaxPower",     0x69, "dBm×100"),
+        ("LastF_THz",    0x54, "THz"),
+        ("LastF_G10",    0x55, "GHz×10"),
+        ("LastF_MHz",    0x6A, "MHz"),
+        ("LGrid10",      0x56, "GHz×10"),
+        ("LGrid2_MHz",   0x6B, "MHz"),
+    ]
+
+    for name, reg, unit in reg_plan:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            ce, st, dout = reg_read(reg)
+            ok = (ce == 0 and _status_ok_for_test(st, allow_aea=True))
+
+            # Human-readable decode
+            if unit in ("dBm×100", "GHz×10", "MHz"):
+                scaled = _s16_from_u16(dout)
+                if unit == "dBm×100":
+                    dec = f"{scaled / 100.0:.2f} dBm"
+                elif unit == "GHz×10":
+                    dec = f"{scaled / 10.0:.1f} GHz"
+                else:
+                    dec = f"{scaled} MHz"
+            else:
+                dec = f"{dout} {unit}"
+
+            msg = (f"{name}: REG=0x{reg:02X} OUT=0x{dout:04X} "
+                   f"CE={ce} STATUS={st} ({_status_name(st)}) [{dec}]")
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", unit, msg, "Pass" if ok else "Fail",
+                       TesterName, now, "Section9.7"])
+        except Exception as e:
+            msg = f"{name}: REG=0x{reg:02X} ERROR: {e}"
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", unit, msg, "Fail", TesterName, now, "Section9.7"])
+
+    _excel_save()
+
+
+# ---------------- Section 9.8 Detail Table ----------------
+def run_9_8_health_table():
+    """Per-register detail test for Section 9.8: Health / Dither / Age.
+
+    Registers:
+      0x57  Currents   RO AEA  (TEC/DIODE/MON/SOA mA×10)
+      0x58  Temps      RO AEA  (DIODE/CASE C×100)
+      0x59  CaseTemp   RO      (C×100)
+      0x5A  DitherPer  RO
+      0x5B  DitherBW   RO
+      0x5C  DevCap     RO
+      0x5D  DevCap2    RO
+      0x5E  DevCap3    RO
+      0x5F  DevCap4    RO
+      0x60  reserved   RO
+      0x61  FTFMin     RO  (MHz, signed)
+      0x62  FTF        RW  (MHz, signed fine tune)
+    """
+    print("\n[Section 9.8] Health / Dither / Age")
+    ws = get_sheet("Section9_8")
+
+    reg_plan = [
+        ("Currents",  0x57, "RO"),   # AEA — decode separately
+        ("Temps",     0x58, "RO"),   # AEA — decode separately
+        ("CaseTemp",  0x59, "RO"),
+        ("DitherPer", 0x5A, "RO"),
+        ("DitherBW",  0x5B, "RO"),
+        ("DevCap",    0x5C, "RO"),
+        ("DevCap2",   0x5D, "RO"),
+        ("DevCap3",   0x5E, "RO"),
+        ("DevCap4",   0x5F, "RO"),
+        ("Rsvd_60",   0x60, "RO"),
+        ("FTFMin",    0x61, "RO"),
+        ("FTF",       0x62, "RW"),
+    ]
+
+    for name, reg, mode in reg_plan:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            ce, st, dout = reg_read(reg)
+            ok = (ce == 0 and _status_ok_for_test(st, allow_aea=True))
+
+            dec = ""
+            if reg == 0x59:
+                dec = f"{_s16_from_u16(dout) / 100.0:.2f} C"
+            elif reg in (0x61, 0x62):
+                dec = f"{_s16_from_u16(dout)} MHz"
+            elif reg in (0x57, 0x58) and ce == 0 and st == 0:
+                # Attempt AEA payload decode
+                payload_len = int(dout) & 0xFF
+                dec = decode_9_8_aea(reg, payload_len)
+
+            if mode == "RW":
+                # Echo current value back to confirm write path
+                ce_w, st_w, _, _ = reg_write(reg, dout)
+                ce_r, st_r, v1 = reg_read(reg)
+                try:
+                    reg_write(reg, dout)
+                except Exception:
+                    pass
+                ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True)
+                      and ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True))
+                msg = (f"{name}: REG=0x{reg:02X} mode=RW "
+                       f"W=0x{dout:04X} R=0x{v1:04X} "
+                       f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}")
+            else:
+                msg = (f"{name}: REG=0x{reg:02X} mode=RO OUT=0x{dout:04X} "
+                       f"CE={ce} STATUS={st} ({_status_name(st)})")
+            if dec:
+                msg += f" [{dec}]"
+
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Pass" if ok else "Fail",
+                       TesterName, now, "Section9.8"])
+        except Exception as e:
+            msg = f"{name}: REG=0x{reg:02X} ERROR: {e}"
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Fail", TesterName, now, "Section9.8"])
+
+    _excel_save()
+
+
+# ---------------- Section 9.9 Detail Table ----------------
+def run_9_9_mfr_specific_table():
+    """Per-register detail test for Section 9.9: Manufacturer-Specific Commands.
+
+    LUT debug window (RO telemetry):
+      0x80  V1        (×100)
+      0x81  V2        (×100)
+      0x82  V3        (×100)
+      0x83  Gain      (×100)
+      0x84  SOA_tel   (×100)
+      0x85  Temp      (°C×10)
+      0x86  MPD       (×10)
+      0x87  WLPD      (×10)
+      0x88  WMPD      (×10)
+
+    PD registers (RO):
+      0x89  WL_PD     (×10)
+      0x8A  Etalon_PD (×10)
+      0x8B  Power_PD  (×10)
+
+    Tuner / drive registers (RW):
+      0x8C  TunerPhase (×1000)
+      0x8D  TunerRing1 (×1000)
+      0x8E  TunerRing2 (×1000)
+      0x8F  SOA        (×100)
+      0x90  Bias       (raw int16)
+      0x91  TEC        (raw int16)
+      0x92  reserved   (RO)
+    """
+    print("\n[Section 9.9] Manufacturer-Specific Commands")
+    ws = get_sheet("Section9_9")
+
+    def _decode_9_9(reg, val):
+        val = int(val) & 0xFFFF
+        if reg in (0x80, 0x81, 0x82, 0x83, 0x84, 0x8F):
+            return f"{val / 100.0:.3f}"
+        if reg in (0x85,):
+            return f"{_s16_from_u16(val) / 10.0:.1f} C"
+        if reg in (0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B):
+            return f"{val / 10.0:.2f} (PD)"
+        if reg in (0x8C, 0x8D, 0x8E):
+            return f"{val / 1000.0:.4f}"
+        if reg in (0x90, 0x91):
+            return f"{_s16_from_u16(val)}"
+        return ""
+
+    reg_plan = [
+        ("V1",          0x80, "RO"),
+        ("V2",          0x81, "RO"),
+        ("V3",          0x82, "RO"),
+        ("Gain",        0x83, "RO"),
+        ("SOA_tel",     0x84, "RO"),
+        ("Temp",        0x85, "RO"),
+        ("MPD",         0x86, "RO"),
+        ("WLPD",        0x87, "RO"),
+        ("WMPD",        0x88, "RO"),
+        ("WL_PD",       0x89, "RO"),
+        ("Etalon_PD",   0x8A, "RO"),
+        ("Power_PD",    0x8B, "RO"),
+        ("TunerPhase",  0x8C, "RW"),
+        ("TunerRing1",  0x8D, "RW"),
+        ("TunerRing2",  0x8E, "RW"),
+        ("SOA",         0x8F, "RW"),
+        ("Bias",        0x90, "RW"),
+        ("TEC",         0x91, "RW"),
+        ("Rsvd_92",     0x92, "RO"),
+    ]
+
+    for name, reg, mode in reg_plan:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            ce0, st0, v0 = reg_read(reg)
+            ok_read = (ce0 == 0 and _status_ok_for_test(st0, allow_aea=True))
+            dec = _decode_9_9(reg, v0)
+
+            if mode == "RO":
+                ok = ok_read
+                msg = (f"{name}: REG=0x{reg:02X} mode=RO OUT=0x{v0:04X} "
+                       f"CE={ce0} STATUS={st0} ({_status_name(st0)})")
+                if dec:
+                    msg += f" [{dec}]"
+            else:
+                # Write echo of current value to confirm RW path, then restore
+                ce_w, st_w, _, _ = reg_write(reg, v0)
+                ce_r, st_r, v1 = reg_read(reg)
+                try:
+                    reg_write(reg, v0)
+                except Exception:
+                    pass
+                ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True)
+                      and ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True)
+                      and v1 == v0)
+                msg = (f"{name}: REG=0x{reg:02X} mode=RW "
+                       f"W=0x{v0:04X} R=0x{v1:04X} "
+                       f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}")
+                if dec:
+                    msg += f" [{dec}]"
+
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Pass" if ok else "Fail",
+                       TesterName, now, "Section9.9"])
+        except Exception as e:
+            msg = f"{name}: REG=0x{reg:02X} ERROR: {e}"
+            print("  " + msg)
+            ws.append([name, f"0x{reg:02X}", mode, msg, "Fail", TesterName, now, "Section9.9"])
+
+    _excel_save()
+
 # ---------------- PD Register Test ----------------
 def run_pd_test():
     """Simple PD register test.
@@ -4986,6 +5339,10 @@ def run_all_dvt_tests():
       Option 11 — Requirements coverage (9.5/9.6/9.7/9.8/9.9)
       Option 12 — MSA extension registers (0x8C–0x91 R/W)
       Option 14 — Section 10 alarm / trigger mask & COW status test
+      Option 15 — Section 9.6 per-register detail
+      Option 16 — Section 9.7 fine tune / limits
+      Option 17 — Section 9.8 health / dither / age
+      Option 18 — Section 9.9 manufacturer-specific
 
     All results accumulate in dvt_excel.xlsx (one sheet per test type).
     """
@@ -5000,6 +5357,10 @@ def run_all_dvt_tests():
         ("Option 11 — Requirements Coverage 9.5–9.9",      run_requirements_coverage),
         ("Option 12 — MSA Extension Registers 0x8C–0x91",  run_msa_extension_test),
         ("Option 14 — Section 10 Alarm / COW Test",        run_section10_alarm_test),
+        ("Option 15 — Section 9.6 Detail (Config regs)",   run_9_6_detail_table),
+        ("Option 16 — Section 9.7 Detail (Fine tune/limits)", run_9_7_fine_tune_table),
+        ("Option 17 — Section 9.8 Detail (Health/dither)", run_9_8_health_table),
+        ("Option 18 — Section 9.9 Detail (Mfr-specific)",  run_9_9_mfr_specific_table),
     ]
 
     for i, (label, fn) in enumerate(steps, 1):
@@ -5040,6 +5401,10 @@ if __name__ == "__main__":
         12: "MSA Extension Registers (0x8C–0x91 R/W Test)",
         13: "Run All (Full DVT Suite)",
         14: "Section 10 Alarm / Trigger Mask & COW Status Test",
+        15: "Section 9.6 Detail (General Module Config per-register)",
+        16: "Section 9.7 Detail (Fine Tune / Limits per-register)",
+        17: "Section 9.8 Detail (Health / Dither / Age per-register)",
+        18: "Section 9.9 Detail (Manufacturer-Specific per-register)",
     }
 
     for menu in dvt_menu:
@@ -5174,6 +5539,18 @@ if __name__ == "__main__":
             ran_non_gui = True
         elif dvt_choice == 14:
             run_section10_alarm_test()
+            ran_non_gui = True
+        elif dvt_choice == 15:
+            run_9_6_detail_table()
+            ran_non_gui = True
+        elif dvt_choice == 16:
+            run_9_7_fine_tune_table()
+            ran_non_gui = True
+        elif dvt_choice == 17:
+            run_9_8_health_table()
+            ran_non_gui = True
+        elif dvt_choice == 18:
+            run_9_9_mfr_specific_table()
             ran_non_gui = True
     else:
         print("Invalid choice")
