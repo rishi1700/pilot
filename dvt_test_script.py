@@ -4844,9 +4844,9 @@ def run_section10_alarm_test():
     _excel_save()
 
 
-def run_all_william_tests():
+def run_all_dvt_tests():
     """
-    Run all options required for William's DVT report in one automated sequence:
+    Run all options required for a full DVT report in one automated sequence:
       Option 2  — Table A (Supervisory / identity strings)
       Option 3  — Table 9.5 (Status / triggers)
       Option 5  — Full 0x00–0xFF register scan
@@ -4857,7 +4857,7 @@ def run_all_william_tests():
     All results accumulate in dvt_excel.xlsx (one sheet per test type).
     """
     print("\n" + "=" * 60)
-    print("  DVT Full Suite — William Report Run")
+    print("  DVT Full Suite")
     print("=" * 60)
 
     steps = [
@@ -5017,7 +5017,7 @@ if __name__ == "__main__":
         10: "Table B (9.6 Snapshot)",
         11: "Requirements Coverage (9.5/9.6/9.7/9.8/9.9)",
         12: "MSA Extension Registers (0x8C–0x91 R/W Test)",
-        13: "Run All (Full DVT Suite for William Report)",
+        13: "Run All (Full DVT Suite)",
         14: "Section 10 Alarm / Trigger Mask & COW Status Test",
     }
 
@@ -5149,7 +5149,7 @@ if __name__ == "__main__":
             run_msa_extension_test()
             ran_non_gui = True
         elif dvt_choice == 13:
-            run_all_william_tests()
+            run_all_dvt_tests()
             ran_non_gui = True
         elif dvt_choice == 14:
             run_section10_alarm_test()
