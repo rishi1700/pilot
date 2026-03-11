@@ -2930,7 +2930,7 @@ def run_msa_extension_test():
         ws.append([name, msg, "Pass" if ok else "Fail", TesterName, now, "MSA_Extensions"])
 
     try:
-        write_tuners(phase_v, ring1_v, ring2_v)
+        WriteTuners(phase_v, ring1_v, ring2_v)
         rp = read_tuner("phase")
         r1 = read_tuner("ring1")
         r2 = read_tuner("ring2")
@@ -2942,7 +2942,7 @@ def run_msa_extension_test():
         print("  Tuners: FAIL", e)
 
     try:
-        write_soa(soa_v)
+        WriteSOA(soa_v)
         rs = read_soa()
         ok = (abs(rs - soa_v) <= 0.02)
         _log("SOA", ok, f"Wrote soa={soa_v} | Read soa={rs:.2f}")
@@ -2952,7 +2952,7 @@ def run_msa_extension_test():
         print("  SOA: FAIL", e)
 
     try:
-        write_bias(bias_v)
+        WriteBias(bias_v)
         rb = read_bias()
         ok = (rb == bias_v)
         _log("Bias", ok, f"Wrote bias={bias_v} | Read bias={rb}")
@@ -2962,7 +2962,7 @@ def run_msa_extension_test():
         print("  Bias: FAIL", e)
 
     try:
-        write_tec(tec_v)
+        WriteTEC(tec_v)
         rt = read_tec()
         ok = (rt == tec_v)
         _log("TEC", ok, f"Wrote tec={tec_v} | Read tec={rt}")
@@ -4863,6 +4863,7 @@ if __name__ == "__main__":
         9 : "SetChannel Test (Internal WM/Etalon/Power + External HP WM)",
         10: "Table B (9.6 Snapshot)",
         11: "Requirements Coverage (9.5/9.6/9.7/9.8/9.9)",
+        12: "MSA Extension Registers (0x8C–0x91 R/W Test)",
     }
 
     for menu in dvt_menu:
@@ -4988,6 +4989,9 @@ if __name__ == "__main__":
             ran_non_gui = True
         elif dvt_choice == 11:
             run_requirements_coverage()
+            ran_non_gui = True
+        elif dvt_choice == 12:
+            run_msa_extension_test()
             ran_non_gui = True
     else:
         print("Invalid choice")
