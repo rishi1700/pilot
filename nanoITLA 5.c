@@ -1455,6 +1455,9 @@ done:
 /* ======================================================================= */
 typedef struct { uint8_t ce,status,reg; uint16_t data; } ResponseFields;
 
+/* Last outbound response, for LstResp (0x13) replay. */
+static ResponseFields g_last_resp = {0};
+
 static int py_get_srq(int *out){
 #if ITLA_EMBED_PY
   if(!use_python){ if(out)*out=c_get_srq(); return 0; }
@@ -1500,6 +1503,19 @@ static int py_get_last_error(int *out){
 
 static void handle_register_and_build_response(const InboundFields *in, ResponseFields *out){
   memset(out,0,sizeof(*out)); out->reg=in->reg;
+
+  /* 9.4.12 LstResp (0x13) [R, deprecated]: replay the last outbound response. */
+  if (in->reg == 0x13) {
+    if (in->is_write) {
+      out->status = STAT_XE; g_last_error = LERR_RNW; status_latch_exec_error();
+    } else {
+      out->ce     = g_last_resp.ce;
+      out->status = g_last_resp.status;
+      out->reg    = g_last_resp.reg;
+      out->data   = g_last_resp.data;
+    }
+    return;
+  }
 
   if (!in->is_write && in->reg == 0x00) {
     /* IMPORTANT:
@@ -1560,6 +1576,9 @@ static void handle_register_and_build_response(const InboundFields *in, Response
   if(st_busy && status==STAT_OK) status=STAT_CP;
 
   out->ce=0; out->status=status; out->data=data;
+
+  /* Save for LstResp (0x13) – do not overwrite with the LstResp response itself. */
+  g_last_resp = *out;
 }
 
 /* ---------- Public API (ctypes-friendly) ---------- */

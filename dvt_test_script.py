@@ -2230,7 +2230,7 @@ REQUIREMENT_SECTIONS = [
 # Any register NOT in this set that returns XE is labelled "Not Implemented"
 # (expected behaviour). Any register IN this set that returns XE is a real Fail.
 IMPLEMENTED_REGISTERS: set = (
-    set(range(0x00, 0x16))  # 0x00–0x15: identity, NOP, basic status
+    (set(range(0x00, 0x16)) - {0x0C, 0x11, 0x12})  # 0x0C/0x11/0x12 are reserved (Table 9.2-1)
     | {reg for _, _, regs in REQUIREMENT_SECTIONS for reg in regs}
 )
 
