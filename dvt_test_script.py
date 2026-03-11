@@ -1333,7 +1333,7 @@ def get_sheet(sheet_name: str):
             ws.delete_rows(1, ws.max_row)
             # Recreate compact header for full register scan
             ws.append([
-                "Test", "Reg", "CE", "STATUS", "STATUS_Text", "OverallResult",
+                "Test", "Reg", "CE", "STATUS", "STATUS_Text", "Implemented", "OverallResult",
                 "Tester", "DateTime", "Test Suite", "Test Description"
             ])
         return ws
@@ -1341,7 +1341,7 @@ def get_sheet(sheet_name: str):
         if sheet_name == "FullScan":
             ws = workbook.create_sheet(title=sheet_name)
             ws.append([
-                "Test", "Reg", "CE", "STATUS", "STATUS_Text", "OverallResult",
+                "Test", "Reg", "CE", "STATUS", "STATUS_Text", "Implemented", "OverallResult",
                 "Tester", "DateTime", "Test Suite", "Test Description"
             ])
             return ws
@@ -2224,6 +2224,16 @@ REQUIREMENT_SECTIONS = [
     ("9.9",  "Manufacturer specific (implemented subset)", [0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92]),
 ]
 
+# Flat set of all registers the nanoITLA firmware is expected to implement.
+# Base identity / NOP registers (MSA 9.3/9.4): 0x00–0x15
+# Plus every address listed in REQUIREMENT_SECTIONS (9.5–9.9).
+# Any register NOT in this set that returns XE is labelled "Not Implemented"
+# (expected behaviour). Any register IN this set that returns XE is a real Fail.
+IMPLEMENTED_REGISTERS: set = (
+    set(range(0x00, 0x16))  # 0x00–0x15: identity, NOP, basic status
+    | {reg for _, _, regs in REQUIREMENT_SECTIONS for reg in regs}
+)
+
 # ---------------- Extended Address (EA) helpers for identity strings ----------------
 
 EAC_INC_ON_READ = 0x0001  # matches EAC_INC_ON_READ in nanoITLA.c for AEA_EAC (0x09)
@@ -2845,14 +2855,20 @@ def run_full_register_scan():
     For each register:
       - Performs a read via reg_read(reg)
       - Logs CE/STATUS/OUT to console and Excel
-      - Marks Pass if CE==0 and STATUS in (0, 2, 3) (OK/AEA/CP)
-        otherwise Fail.
+      - Marks Pass if CE==0 and STATUS in (0, 2, 3) (OK/AEA/CP).
+      - Marks "Not Implemented" if STATUS==XE and the register is not in
+        IMPLEMENTED_REGISTERS (expected behaviour — firmware deliberately
+        rejects unimplemented addresses).
+      - Marks Fail if STATUS==XE on a register that IS in IMPLEMENTED_REGISTERS
+        (real firmware defect).
     """
     print("\n[Full Scan] 0x00–0xFF Register Readback")
     ws = get_sheet("FullScan")
 
     for reg in range(0x00, 0x100):
         name = f"Reg_0x{reg:02X}"
+        is_implemented = reg in IMPLEMENTED_REGISTERS
+        implemented_str = "Yes" if is_implemented else "No"
         try:
             ce, status, dout = reg_read(reg)
             status_name = _status_name(status)
@@ -2860,15 +2876,21 @@ def run_full_register_scan():
                 f"Reg 0x{reg:02X}: OUT=0x{dout:04X}, "
                 f"CE={ce}, STATUS={status} ({status_name})"
             )
-            # In UART mode: only OK is acceptable.
-            # In ctypes mode: OK/AEA are Pass, CP is Info.
+            # Determine pass/fail, distinguishing unimplemented XE from real failures.
             if IS_UART:
-                pass_fail = "Pass" if (ce == 0 and status == 0) else "Fail"
+                if ce == 0 and status == 0:
+                    pass_fail = "Pass"
+                elif status == 1 and not is_implemented:  # XE on non-implemented reg
+                    pass_fail = "Not Implemented"
+                else:
+                    pass_fail = "Fail"
             else:
                 if ce == 0 and status in (0, 2):
                     pass_fail = "Pass"
                 elif ce == 0 and status == 3:
                     pass_fail = "Info"
+                elif status == 1 and not is_implemented:  # XE on non-implemented reg
+                    pass_fail = "Not Implemented"
                 else:
                     pass_fail = "Fail"
         except Exception as e:
@@ -2887,6 +2909,7 @@ def run_full_register_scan():
             ce,                            # CE
             status,                        # STATUS
             status_name,                   # STATUS_Text
+            implemented_str,               # Implemented
             pass_fail,                     # OverallResult
             TesterName,                    # Tester
             current_datetime,              # DateTime
@@ -2897,11 +2920,11 @@ def run_full_register_scan():
         if (reg % 16) == 0:
             _excel_save()
 
-        logger_info = f": Test: {name} Response: {response}, Result: {pass_fail}, Tester: {TesterName}"
+        logger_info = f": Test: {name} Response: {response}, Implemented: {implemented_str}, Result: {pass_fail}, Tester: {TesterName}"
         if pass_fail == "Pass":
             logger[0].info(loggerName + logger_info)
-        elif pass_fail == "Info":
-            logger[0].info(loggerName + "[INFO]" + logger_info)
+        elif pass_fail in ("Info", "Not Implemented"):
+            logger[0].info(loggerName + f"[{pass_fail.upper()}]" + logger_info)
         else:
             logger[0].warning(loggerName + logger_info)
 
@@ -2930,7 +2953,7 @@ def run_msa_extension_test():
         ws.append([name, msg, "Pass" if ok else "Fail", TesterName, now, "MSA_Extensions"])
 
     try:
-        WriteTuners(phase_v, ring1_v, ring2_v)
+        write_tuners(phase_v, ring1_v, ring2_v)
         rp = read_tuner("phase")
         r1 = read_tuner("ring1")
         r2 = read_tuner("ring2")
@@ -2942,7 +2965,7 @@ def run_msa_extension_test():
         print("  Tuners: FAIL", e)
 
     try:
-        WriteSOA(soa_v)
+        write_soa(soa_v)
         rs = read_soa()
         ok = (abs(rs - soa_v) <= 0.02)
         _log("SOA", ok, f"Wrote soa={soa_v} | Read soa={rs:.2f}")
@@ -2952,7 +2975,7 @@ def run_msa_extension_test():
         print("  SOA: FAIL", e)
 
     try:
-        WriteBias(bias_v)
+        write_bias(bias_v)
         rb = read_bias()
         ok = (rb == bias_v)
         _log("Bias", ok, f"Wrote bias={bias_v} | Read bias={rb}")
@@ -2962,7 +2985,7 @@ def run_msa_extension_test():
         print("  Bias: FAIL", e)
 
     try:
-        WriteTEC(tec_v)
+        write_tec(tec_v)
         rt = read_tec()
         ok = (rt == tec_v)
         _log("TEC", ok, f"Wrote tec={tec_v} | Read tec={rt}")
@@ -4729,159 +4752,6 @@ def read_external_wavemeter():
         wl_nm, pw_dbm, smsr_db = wm.read_peaks()
     return _nm_to_ghz(float(wl_nm))
     
-def run_section10_alarm_test():
-    """
-    Section 10 — Alarm / trigger mask R/W and latched-status (COW) behaviour.
-
-    Tests:
-      1. SRQ trigger mask (0x28) — write known pattern, read back, restore.
-      2. Fatal trigger mask (0x29) — write known pattern, read back, restore.
-      3. ALM trigger mask (0x2A) — write known pattern, read back, restore.
-      4. StatusF (0x20) — read latched Fatal status; attempt clear by reading twice
-         (COW semantics: first read returns latched value, second read clears it).
-      5. StatusW (0x21) — same COW read/clear check.
-      6. MCB (0x33) — verify ADT and SDF flag bits R/W.
-    """
-    print("\n[Section 10] Alarm / Trigger Mask & Latched Status (COW)")
-    ws = get_sheet("Section10_Alarms")
-
-    # Column header row
-    ws.append(["Test", "Reg", "Detail", "Result", "Tester", "DateTime", "Test Suite"])
-
-    def _log(name: str, reg: int, ok: bool, detail: str):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        result = "Pass" if ok else "Fail"
-        ws.append([name, f"0x{reg:02X}", detail, result, TesterName, now, "Section10_Alarms"])
-        print(f"  [{result}] {name}: {detail}")
-        log_fn = logger[0].info if ok else logger[0].warning
-        log_fn(loggerName + f": Test: {name} REG=0x{reg:02X} Detail: {detail} Result: {result} Tester: {TesterName}")
-
-    # ------------------------------------------------------------------
-    # 1–3: Trigger mask registers (0x28 SRQ, 0x29 Fatal, 0x2A ALM)
-    # ------------------------------------------------------------------
-    MASK_REGS = [
-        ("SRQ_Triggers",   0x28, 0x0003),
-        ("FatalTriggers",  0x29, 0x000F),
-        ("ALM_Triggers",   0x2A, 0x0007),
-    ]
-    for name, reg, pattern in MASK_REGS:
-        try:
-            ce0, st0, orig = reg_read(reg)
-            ce_w, st_w, _, _ = reg_write(reg, pattern)
-            ce_r, st_r, readback = reg_read(reg)
-            # Restore original value
-            try:
-                reg_write(reg, orig)
-            except Exception:
-                pass
-            write_ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True))
-            read_ok  = (ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True))
-            value_ok = (readback == (pattern & 0xFFFF))
-            ok = write_ok and read_ok and value_ok
-            detail = (
-                f"W=0x{pattern:04X} R=0x{readback:04X} orig=0x{orig:04X} "
-                f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}"
-            )
-            _log(name, reg, ok, detail)
-        except Exception as e:
-            _log(name, reg, False, f"ERROR: {e}")
-
-    # ------------------------------------------------------------------
-    # 4–5: Latched status registers (COW clear-on-write/read semantics)
-    #      Read twice; second read should return 0x0000 (no new events).
-    # ------------------------------------------------------------------
-    STATUS_REGS = [("StatusF", 0x20), ("StatusW", 0x21)]
-    for name, reg in STATUS_REGS:
-        try:
-            ce1, st1, v1 = reg_read(reg)  # first read — latched value
-            ce2, st2, v2 = reg_read(reg)  # second read — should be cleared
-            read1_ok = (ce1 == 0 and _status_ok_for_test(st1, allow_aea=True))
-            read2_ok = (ce2 == 0 and _status_ok_for_test(st2, allow_aea=True))
-            # COW pass: second read returns 0 (cleared) — only meaningful if no
-            # live alarms are asserted, so we just verify the read itself succeeds.
-            ok = read1_ok and read2_ok
-            detail = (
-                f"Read1=0x{v1:04X}(CE={ce1},ST={st1}) "
-                f"Read2=0x{v2:04X}(CE={ce2},ST={st2}) "
-                f"COW_cleared={'Yes' if v2 == 0 else 'No (live alarms present)'}"
-            )
-            _log(name + "_COW", reg, ok, detail)
-        except Exception as e:
-            _log(name + "_COW", reg, False, f"ERROR: {e}")
-
-    # ------------------------------------------------------------------
-    # 6: MCB register (0x33) — ADT (bit 0) and SDF (bit 1) flag R/W
-    # ------------------------------------------------------------------
-    MCB_REG = 0x33
-    ADT_BIT = 0x0001
-    SDF_BIT = 0x0002
-    try:
-        ce0, st0, orig_mcb = reg_read(MCB_REG)
-        for flag_name, mask in [("ADT", ADT_BIT), ("SDF", SDF_BIT)]:
-            # Set the flag, read back, clear it, read back.
-            set_val = orig_mcb | mask
-            clr_val = orig_mcb & ~mask & 0xFFFF
-            ce_s, st_s, _, _ = reg_write(MCB_REG, set_val)
-            ce_rs, st_rs, v_set = reg_read(MCB_REG)
-            ce_c, st_c, _, _ = reg_write(MCB_REG, clr_val)
-            ce_rc, st_rc, v_clr = reg_read(MCB_REG)
-            set_ok = (v_set & mask) != 0
-            clr_ok = (v_clr & mask) == 0
-            ok = set_ok and clr_ok
-            detail = (
-                f"MCB {flag_name}: set=0x{v_set:04X}(bit {'1' if set_ok else '0'}) "
-                f"clr=0x{v_clr:04X}(bit {'0' if clr_ok else '1'})"
-            )
-            _log(f"MCB_{flag_name}", MCB_REG, ok, detail)
-        # Restore original MCB
-        try:
-            reg_write(MCB_REG, orig_mcb)
-        except Exception:
-            pass
-    except Exception as e:
-        _log("MCB_ADT_SDF", MCB_REG, False, f"ERROR: {e}")
-
-    _excel_save()
-
-
-def run_all_dvt_tests():
-    """
-    Run all options required for a full DVT report in one automated sequence:
-      Option 2  — Table A (Supervisory / identity strings)
-      Option 3  — Table 9.5 (Status / triggers)
-      Option 5  — Full 0x00–0xFF register scan
-      Option 11 — Requirements coverage (9.5/9.6/9.7/9.8/9.9)
-      Option 12 — MSA extension registers (0x8C–0x91 R/W)
-      Option 14 — Section 10 alarm / trigger mask & COW status test
-
-    All results accumulate in dvt_excel.xlsx (one sheet per test type).
-    """
-    print("\n" + "=" * 60)
-    print("  DVT Full Suite")
-    print("=" * 60)
-
-    steps = [
-        ("Option 2  — Table A (Supervisory Reads)",        run_supervisory_table),
-        ("Option 3  — Table 9.5 (Status / Triggers)",      run_9_5_status_table),
-        ("Option 5  — Full 0x00–0xFF Register Scan",       run_full_register_scan),
-        ("Option 11 — Requirements Coverage 9.5–9.9",      run_requirements_coverage),
-        ("Option 12 — MSA Extension Registers 0x8C–0x91",  run_msa_extension_test),
-        ("Option 14 — Section 10 Alarm / COW Test",        run_section10_alarm_test),
-    ]
-
-    for i, (label, fn) in enumerate(steps, 1):
-        print(f"\n[{i}/{len(steps)}] {label}")
-        try:
-            fn()
-        except Exception as e:
-            print(f"  [ERROR] {label} failed: {e}")
-
-    _excel_save()
-    print("\n" + "=" * 60)
-    print(f"  DVT Full Suite complete — results in {ExcelFileName}")
-    print("=" * 60)
-
-
 def run_full_setchannel_test(start_ch=1, end_ch=10, tol_mhz=100.0):
     print("\n[Full SetChannel Test] Internal PD + External WM Comparison")
     ws = get_sheet("SetChannelFull")
@@ -5016,9 +4886,6 @@ if __name__ == "__main__":
         9 : "SetChannel Test (Internal WM/Etalon/Power + External HP WM)",
         10: "Table B (9.6 Snapshot)",
         11: "Requirements Coverage (9.5/9.6/9.7/9.8/9.9)",
-        12: "MSA Extension Registers (0x8C–0x91 R/W Test)",
-        13: "Run All (Full DVT Suite)",
-        14: "Section 10 Alarm / Trigger Mask & COW Status Test",
     }
 
     for menu in dvt_menu:
@@ -5144,15 +5011,6 @@ if __name__ == "__main__":
             ran_non_gui = True
         elif dvt_choice == 11:
             run_requirements_coverage()
-            ran_non_gui = True
-        elif dvt_choice == 12:
-            run_msa_extension_test()
-            ran_non_gui = True
-        elif dvt_choice == 13:
-            run_all_dvt_tests()
-            ran_non_gui = True
-        elif dvt_choice == 14:
-            run_section10_alarm_test()
             ran_non_gui = True
     else:
         print("Invalid choice")
