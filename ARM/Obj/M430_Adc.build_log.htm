@@ -1,0 +1,117 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: µVision V5.41.0.0
+Copyright (C) 2024 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Jorge Uribe, Pilot Photonics, LIC=----
+ 
+Tool Versions:
+Toolchain:       MDK-Lite  Version: 5.41.0.0
+Toolchain Path:  C:\Users\jorge\AppData\Local\Keil_v5\ARM\ARMCLANG\Bin
+C Compiler:      ArmClang.exe V6.22
+Assembler:       Armasm.exe V6.22
+Linker/Locator:  ArmLink.exe V6.22
+Library Manager: ArmAr.exe V6.22
+Hex Converter:   FromElf.exe V6.22
+CPU DLL:         SARMCM3.DLL V5.41.0.0
+Dialog DLL:      DCM.DLL V1.17.5.0
+Target DLL:      Segger\JL2CM3.dll V2.99.45.0
+Dialog DLL:      TCM.DLL V1.56.4.0
+ 
+<h2>Project:</h2>
+C:\Users\jorge\Documents\Pilot nanoITLA test\MSA test 3\ARM\M433_Adc.uvprojx
+Project File Date:  01/16/2026
+
+<h2>Output:</h2>
+*** Using Compiler 'V6.22', folder: 'C:\Users\jorge\AppData\Local\Keil_v5\ARM\ARMCLANG\Bin'
+Rebuild target 'Adc'
+compiling iramCode.c...
+compiling ADuCM430_Setup.c...
+compiling main.c...
+compiling nano_hw.c...
+compiling nano_lut_50ghz.c...
+compiling AdcLib.c...
+compiling nanoITLA.c...
+compiling ClkLib.c...
+compiling DioLib.c...
+compiling DacLib.c...
+compiling GptLib.c...
+compiling UrtLib.c...
+compiling WdtLib.c...
+compiling startup_ADuCM430.c...
+compiling system_ADuCM430.c...
+linking...
+.\RTE\Device\ADuCM433\ADuCM433.sct(35): warning: L6329W: Pattern *.o(.IRAM_CODE) only matches removed unused sections.
+Program Size: Code=23774 RO-data=6086 RW-data=36 ZI-data=5788  
+Finished: 0 information, 1 warning and 0 error messages.
+FromELF: creating hex file...
+".\Obj\M430_Adc.axf" - 0 Error(s), 1 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: ARM
+                https://www.keil.com/pack/ARM.CMSIS.6.1.0.pack
+                ARM::CMSIS@6.1.0
+                CMSIS (Common Microcontroller Software Interface Standard)
+   * Component: CORE Version: 6.1.0
+
+Package Vendor: AnalogDevices
+                www.analog.com/AnalogDevices.ADuCM430_DFP.0.6.0.pack
+                AnalogDevices::ADuCM430_DFP@0.6.0
+                Analog Devices ADuCM430 Device Support
+   * Component: Startup Version: 2.0.0
+   * Component: ADC Version: 0.2.0
+   * Component: CLK Version: 0.3.0
+   * Component: DAC Version: 0.5.0
+   * Component: DIO Version: 0.3.0
+   * Component: GPT Version: 0.2.0
+   * Component: UART Version: 0.2.0
+   * Component: WDT Version: 0.2.0
+
+<h2>Collection of Component include folders:</h2>
+  ./RTE/Device/ADuCM433
+  ./RTE/_Adc
+  C:/Users/jorge/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include
+  C:/Users/jorge/AppData/Local/Arm/Packs/AnalogDevices/ADuCM430_DFP/0.6.0/common
+
+<h2>Collection of Component Files used:</h2>
+
+   * Component: ARM::CMSIS:CORE@6.1.0
+
+   * Component: Analog Devices::Device:Startup@2.0.0
+      Source file:   common/arm/startup_ADuCM430.c
+      Source file:   common/system_ADuCM430.c
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:ADC@0.2.0
+      Source file:   common/AdcLib.c
+      Include file:  common/AdcLib.h
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:CLK@0.3.0
+      Source file:   common/ClkLib.c
+      Include file:  common/ClkLib.h
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:DAC@0.5.0
+      Include file:  common/DacLib.h
+      Source file:   common/DacLib.c
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:DIO@0.3.0
+      Include file:  common/DioLib.h
+      Source file:   common/DioLib.c
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:GPT@0.2.0
+      Source file:   common/GptLib.c
+      Include file:  common/GptLib.h
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:UART@0.2.0
+      Include file:  common/UrtLib.h
+      Source file:   common/UrtLib.c
+
+   * Component: AnalogDevices::Device:Peripheral Libraries:WDT@0.2.0
+      Include file:  common/WdtLib.h
+      Source file:   common/WdtLib.c
+Build Time Elapsed:  00:00:06
+</pre>
+</body>
+</html>

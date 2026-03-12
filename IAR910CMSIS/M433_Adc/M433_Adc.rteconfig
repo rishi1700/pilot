@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<configuration xmlns:xs="http://www.w3.org/2001/XMLSchema-instance">
+
+  <toolchain Tcompiler="IAR" Toutput="exe"/>
+
+  <components>
+
+    <component Cclass="CMSIS" Cgroup="CORE" Cvendor="ARM" Cversion="5.5.0">
+
+      <package name="CMSIS" url="http://www.keil.com/pack/" vendor="ARM" version="5.8.0"/>
+
+      <file category="doc" name="CMSIS/Documentation/Core/html/index.html"/>
+
+      <file category="include" name="CMSIS/Core/Include/"/>
+
+      <file category="header" condition="TrustZone" name="CMSIS/Core/Include/tz_context.h"/>
+
+      <file attr="template" category="sourceC" condition="TZ Secure" name="CMSIS/Core/Template/ARMv8-M/main_s.c" select="Secure mode 'main' module for ARMv8-M" version="1.1.1"/>
+
+      <file attr="template" category="sourceC" condition="TZ Secure" name="CMSIS/Core/Template/ARMv8-M/tz_context.c" select="RTOS Context Management (TrustZone for ARMv8-M)" version="1.1.1"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="ADC" Cvendor="AnalogDevices" Cversion="0.1.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/AdcLib.h" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/AdcLib.c" version="0.1.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="CLK" Cvendor="AnalogDevices" Cversion="0.2.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/ClkLib.h" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/ClkLib.c" version="0.2.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="DAC" Cvendor="AnalogDevices" Cversion="0.4.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/DacLib.h" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/DacLib.c" version="0.4.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="DIO" Cvendor="AnalogDevices" Cversion="0.2.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/DioLib.h" version="0.2.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/DioLib.c" version="0.2.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="UART" Cvendor="AnalogDevices" Cversion="0.1.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/UrtLib.h" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/UrtLib.c" version="0.1.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Peripheral Libraries" Csub="WDT" Cvendor="AnalogDevices" Cversion="0.1.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file attr="config" category="header" deviceDependent="1" name="common/WdtLib.h" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/WdtLib.c" version="0.1.0"/>
+
+    </component>
+
+    <component Cclass="Device" Cgroup="Startup" Cvendor="Analog Devices" Cversion="2.0.0" deviceDependent="1">
+
+      <package name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+      <file category="include" deviceDependent="1" name="common/"/>
+
+      <file attr="config" category="linkerScript" condition="ADuCM43x Half Flash IAR" deviceDependent="1" name="common/iar/ADuCM433.icf" version="1.0.0"/>
+
+      <file attr="config" category="source" condition="IAR_COMPILER" deviceDependent="1" name="common/iar/startup_ADuCM430.s" version="0.1.0"/>
+
+      <file attr="config" category="source" deviceDependent="1" name="common/system_ADuCM430.c" version="1.0.1"/>
+
+    </component>
+
+  </components>
+
+  <apis/>
+
+  <device Dclock="80000000" Dcore="Cortex-M3" DcoreVersion="r2p1" Dendian="Little-endian" Dfamily="ADuCM43x Series" Dfpu="NO_FPU" Dmpu="NO_MPU" Dname="ADuCM433" Dvendor="Analog Devices:1" info="ARM , 32 KB RAM, 1 MB ROM" url="https://www.keil.com/dd2/analogdevices/aducm433">
+
+    <package info="Analog Devices ADuCM430 Device Support" name="ADuCM430_DFP" url="www.analog.com/" vendor="AnalogDevices" version="0.5.0"/>
+
+  </device>
+
+  <packages useAllLatestPacks="1"/>
+
+</configuration>
+
