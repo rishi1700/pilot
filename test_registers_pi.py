@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-test_registers_pi.py – nanoITLA SPI register test for Raspberry Pi
+test_registers_pi.py – nanoITLA UART register test for Raspberry Pi
 =====================================================================
 Walks every implemented ITLA register (standard + manufacturer-specific),
 reads each one, optionally writes a known value and reads back, then
@@ -8,29 +8,18 @@ prints a formatted table showing pass/fail for each register.
 
 Hardware setup
 --------------
-  nanoITLA  <->  Raspberry Pi
-  MISO      ->   GPIO 9  (MISO / pin 21)
-  MOSI      ->   GPIO 10 (MOSI / pin 19)
-  SCLK      ->   GPIO 11 (SCLK / pin 23)
-  CS#       ->   GPIO 8  (CE0  / pin 24)
-  GND       ->   GND
-  3.3 V     ->   3.3 V
-
-SPI settings
------------
-  Bus  : /dev/spidev0.0   (SPI0, CE0)
-  Mode : 0 (CPOL=0, CPHA=0) — MSA OIF ITLA spec
-  Bits : 8
-  Speed: 10 MHz (reduce to 1 MHz if you see CE errors)
+  nanoITLA UART TX  ->  Pi RX  (e.g. /dev/ttyUSB0)
+  nanoITLA UART RX  ->  Pi TX
+  GND               ->  GND
 
 Usage
 -----
-  pip install spidev          # usually already present on Raspbian
+  pip install pyserial
   sudo python3 test_registers_pi.py
-  sudo python3 test_registers_pi.py --speed 1000000   # 1 MHz for debugging
+  sudo python3 test_registers_pi.py --port /dev/ttyAMA0
 """
 
-import spidev
+import serial
 import time
 import argparse
 import sys
@@ -95,26 +84,30 @@ def bytes_to_frame(b):
 
 
 # ---------------------------------------------------------------------------
-# SPI transaction helper
+# UART transaction helper
 # ---------------------------------------------------------------------------
 
-def spi_transact(spi, is_write: bool, reg: int, data: int = 0, lst_rsp: int = 0):
+def uart_transact(ser, is_write: bool, reg: int, data: int = 0, lst_rsp: int = 0):
     """
-    Send one 4-byte ITLA frame and return (ce, xe, reg_echo, data_back).
+    Send one 4-byte ITLA frame over UART and return (ce, xe, reg_echo, data_back).
     """
     frame = build_inbound_frame(is_write, reg, data, lst_rsp)
     tx = frame_to_bytes(frame)
-    rx = spi.xfer2(tx)
-    rframe = bytes_to_frame(rx)
+    ser.reset_input_buffer()
+    ser.write(bytes(tx))
+    rx = ser.read(4)
+    if len(rx) < 4:
+        raise TimeoutError(f"UART timeout: got {len(rx)}/4 bytes")
+    rframe = bytes_to_frame(list(rx))
     return parse_outbound_frame(rframe)
 
 
-def spi_read(spi, reg: int, lst_rsp: int = 0):
-    return spi_transact(spi, False, reg, 0, lst_rsp)
+def spi_read(ser, reg: int, lst_rsp: int = 0):
+    return uart_transact(ser, False, reg, 0, lst_rsp)
 
 
-def spi_write(spi, reg: int, data: int, lst_rsp: int = 0):
-    return spi_transact(spi, True, reg, data, lst_rsp)
+def spi_write(ser, reg: int, data: int, lst_rsp: int = 0):
+    return uart_transact(ser, True, reg, data, lst_rsp)
 
 
 # ---------------------------------------------------------------------------
@@ -330,26 +323,24 @@ def run_tests(spi, verbose=False):
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="nanoITLA SPI register test (Raspberry Pi)")
-    parser.add_argument("--bus",   type=int, default=0,        help="SPI bus (default 0)")
-    parser.add_argument("--dev",   type=int, default=0,        help="SPI device/CS (default 0)")
-    parser.add_argument("--speed", type=int, default=10_000_000, help="SPI clock Hz (default 10 MHz)")
-    parser.add_argument("--mode",  type=int, default=0,        help="SPI mode 0-3 (default 0)")
+    parser = argparse.ArgumentParser(description="nanoITLA UART register test (Raspberry Pi)")
+    parser.add_argument("--port",    default="/dev/ttyUSB0", help="Serial port (default /dev/ttyUSB0)")
+    parser.add_argument("--baud",    type=int, default=115200, help="Baud rate (default 115200)")
+    parser.add_argument("--timeout", type=float, default=0.5,  help="Read timeout seconds (default 0.5)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print extra detail on failures")
     args = parser.parse_args()
 
-    spi = spidev.SpiDev()
-    spi.open(args.bus, args.dev)
-    spi.max_speed_hz = args.speed
-    spi.mode = args.mode
-    spi.bits_per_word = 8
+    import time
+    ser = serial.Serial(args.port, args.baud, timeout=args.timeout)
+    time.sleep(0.1)
+    ser.reset_input_buffer()
 
-    print(f"SPI /dev/spidev{args.bus}.{args.dev}  speed={args.speed/1e6:.1f} MHz  mode={args.mode}")
+    print(f"UART {args.port}  baud={args.baud}  timeout={args.timeout}s")
 
     try:
-        ok = run_tests(spi, verbose=args.verbose)
+        ok = run_tests(ser, verbose=args.verbose)
     finally:
-        spi.close()
+        ser.close()
 
     sys.exit(0 if ok else 1)
 

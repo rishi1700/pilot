@@ -2,30 +2,32 @@
 """
 read_hw_values.py – nanoITLA live hardware sensor readout
 ==========================================================
-Reads all real-time hardware measurement registers over SPI and displays
+Reads all real-time hardware measurement registers over UART and displays
 them in engineering units.  Read-only — safe to run while laser is operating.
 
-Hardware setup (same as test_registers_pi.py):
-  nanoITLA  <->  Raspberry Pi
-  MISO      ->   GPIO 9  (MISO / pin 21)
-  MOSI      ->   GPIO 10 (MOSI / pin 19)
-  SCLK      ->   GPIO 11 (SCLK / pin 23)
-  CS#       ->   GPIO 8  (CE0  / pin 24)
+The firmware implements the ITLA protocol over UART0 at 115200 8N1.
+The Pi talks to the MCU via a USB-UART adapter or GPIO UART pins.
+
+Hardware setup:
+  nanoITLA UART TX  ->  Pi RX  (/dev/ttyUSB0 or /dev/ttyAMA0)
+  nanoITLA UART RX  ->  Pi TX
+  GND               ->  GND
 
 Usage:
+  pip install pyserial
   sudo python3 read_hw_values.py
-  sudo python3 read_hw_values.py --speed 1000000   # 1 MHz for debugging
+  sudo python3 read_hw_values.py --port /dev/ttyAMA0
   sudo python3 read_hw_values.py --loop 2          # refresh every 2 s
 """
 
-import spidev
+import serial
 import time
 import argparse
 import sys
 
 
 # ---------------------------------------------------------------------------
-# ITLA frame helpers (mirrors nanoITLA.c / test_registers_pi.py)
+# ITLA frame helpers (mirrors nanoITLA.c)
 # ---------------------------------------------------------------------------
 
 def _bip4(b0, b1, b2, b3):
@@ -60,82 +62,62 @@ def parse_outbound_frame(frame):
     return ce | our_ce, xe, reg, data
 
 
-def spi_read(spi, reg):
+def uart_read(ser, reg):
+    """Send one 4-byte ITLA read frame over UART, return (ce, xe, reg_echo, data)."""
     frame = build_inbound_frame(False, reg, 0)
-    tx = [(frame >> 24) & 0xFF, (frame >> 16) & 0xFF,
-          (frame >> 8) & 0xFF, frame & 0xFF]
-    rx = spi.xfer2(tx)
+    tx = bytes([(frame >> 24) & 0xFF, (frame >> 16) & 0xFF,
+                (frame >> 8) & 0xFF, frame & 0xFF])
+    ser.reset_input_buffer()
+    ser.write(tx)
+    rx = ser.read(4)
+    if len(rx) < 4:
+        raise TimeoutError(f"UART timeout: got {len(rx)}/4 bytes")
     rframe = (rx[0] << 24) | (rx[1] << 16) | (rx[2] << 8) | rx[3]
     return parse_outbound_frame(rframe)
 
 
 # ---------------------------------------------------------------------------
-# Live hardware measurement registers
-# Tuple: (reg, name, description, decode_fn)
-#   decode_fn(raw_uint16) -> (value_str, unit_str)
-#   Returns None on error.
+# Live hardware measurement registers + decode functions
 # ---------------------------------------------------------------------------
 
 def _signed16(raw):
-    """Interpret raw uint16 as signed int16."""
     return raw if raw < 0x8000 else raw - 0x10000
 
-
-def decode_thz(raw):
-    return f"{raw}", "THz"
-
-def decode_ghz10(raw):
-    return f"{raw / 10.0:.1f}", "GHz"
-
-def decode_centi_v(raw):
-    """raw = V × 100"""
-    return f"{raw / 100.0:.2f}", "V"
-
-def decode_temp_x10(raw):
-    """raw = °C × 10 (from g_temp * 10)"""
-    return f"{raw / 10.0:.1f}", "°C"
-
-def decode_casetemp(raw):
-    """raw = °C × 100 (signed)"""
-    return f"{_signed16(raw) / 100.0:.2f}", "°C"
-
-def decode_pd_x10(raw):
-    """raw = value × 10 (photodetector ADC counts × 10)"""
-    return f"{raw / 10.0:.1f}", "ADC"
-
-def decode_freq_mhz(raw):
-    """raw = signed int16 MHz offset"""
-    return f"{_signed16(raw)}", "MHz"
+def decode_thz(raw):      return f"{raw}", "THz"
+def decode_ghz10(raw):    return f"{raw / 10.0:.1f}", "GHz"
+def decode_centi_v(raw):  return f"{raw / 100.0:.2f}", "V"
+def decode_temp_x10(raw): return f"{raw / 10.0:.1f}", "°C"
+def decode_casetemp(raw): return f"{_signed16(raw) / 100.0:.2f}", "°C"
+def decode_pd_x10(raw):   return f"{raw / 10.0:.1f}", "ADC"
 
 LIVE_REGISTERS = [
-    # ── Laser frequency (active channel) ────────────────────────────────────
-    (0x40, "LF1",             "Laser freq – THz part",            decode_thz),
-    (0x41, "LF2",             "Laser freq – GHz×10 part",         decode_ghz10),
-    # ── Frequency range limits ───────────────────────────────────────────────
-    (0x42, "MinFreq_THz",     "Min lasing freq – THz",            decode_thz),
-    (0x43, "MaxFreq_THz",     "Max lasing freq – THz",            decode_thz),
-    (0x4F, "MinFreq_G10",     "Min lasing freq – GHz×10",         decode_ghz10),
-    (0x50, "MinFreq_G10b",    "Min lasing freq – GHz×10 (dup)",   decode_ghz10),
-    (0x51, "MaxFreq_THz_b",   "Max lasing freq – THz (dup)",      decode_thz),
-    (0x52, "MaxFreq_G10",     "Max lasing freq – GHz×10",         decode_ghz10),
-    (0x54, "LastFreq_THz",    "Last channel freq – THz",          decode_thz),
-    (0x55, "LastFreq_G10",    "Last channel freq – GHz×10",       decode_ghz10),
+    # ── Laser frequency ──────────────────────────────────────────────────────
+    (0x40, "LF1",          "Laser freq – THz part",           decode_thz),
+    (0x41, "LF2",          "Laser freq – GHz×10 part",        decode_ghz10),
+    # ── Freq limits ──────────────────────────────────────────────────────────
+    (0x42, "MinFreq_THz",  "Min lasing freq – THz",           decode_thz),
+    (0x43, "MaxFreq_THz",  "Max lasing freq – THz",           decode_thz),
+    (0x4F, "MinFreq_G10",  "Min lasing freq – GHz×10",        decode_ghz10),
+    (0x51, "MaxFreq_THz2", "Max lasing freq – THz (dup)",     decode_thz),
+    (0x52, "MaxFreq_G10",  "Max lasing freq – GHz×10",        decode_ghz10),
+    (0x54, "LastFreq_THz", "Last channel freq – THz",         decode_thz),
+    (0x55, "LastFreq_G10", "Last channel freq – GHz×10",      decode_ghz10),
     # ── Temperature ──────────────────────────────────────────────────────────
-    (0x59, "CaseTemp",        "Case/PCB temperature",             decode_casetemp),
+    (0x59, "CaseTemp",     "Case/PCB temperature",            decode_casetemp),
     # ── Manufacturer: DAC read-backs ─────────────────────────────────────────
-    (0x80, "V1_rdac",         "Ring-1 voltage read-back",         decode_centi_v),
-    (0x81, "V2_rdac",         "Ring-2 voltage read-back",         decode_centi_v),
-    (0x82, "V3_rdac",         "Phase voltage read-back",          decode_centi_v),
-    (0x83, "Gain_rdac",       "Gain bias read-back",              decode_centi_v),
-    (0x84, "SOA_rdac",        "SOA current read-back",            decode_centi_v),
-    (0x85, "Temp_rdac",       "Temperature ADC read-back",        decode_temp_x10),
+    (0x80, "V1_rdac",      "Ring-1 voltage read-back",        decode_centi_v),
+    (0x81, "V2_rdac",      "Ring-2 voltage read-back",        decode_centi_v),
+    (0x82, "V3_rdac",      "Phase voltage read-back",         decode_centi_v),
+    (0x83, "Gain_rdac",    "Gain bias read-back",             decode_centi_v),
+    (0x84, "SOA_rdac",     "SOA current read-back",           decode_centi_v),
+    (0x85, "Temp_rdac",    "Temperature ADC read-back",       decode_temp_x10),
     # ── Manufacturer: Photodetectors ─────────────────────────────────────────
-    (0x86, "MPD",             "Main power detector (g_mpd)",      decode_pd_x10),
-    (0x87, "WLPD",            "Etalon PD / wavelength lock",      decode_pd_x10),
-    (0x88, "WMPD",            "Wavelength monitor PD",            decode_pd_x10),
-    (0x89, "WMPD_meas",       "WMPD measured (alias)",            decode_pd_x10),
-    (0x8A, "WLPD_meas",       "WLPD measured (alias)",            decode_pd_x10),
-    (0x8B, "MPD_meas",        "MPD measured (alias)",             decode_pd_x10),
+    (0x86, "MPD",          "Main power detector (g_mpd)",     decode_pd_x10),
+    (0x87, "WLPD",         "Etalon PD / wavelength lock",     decode_pd_x10),
+    (0x88, "WMPD",         "Wavelength monitor PD",           decode_pd_x10),
+    (0x89, "WMPD_meas",    "WMPD measured (alias)",           decode_pd_x10),
+    (0x8A, "WLPD_meas",    "WLPD measured (alias)",           decode_pd_x10),
+    (0x8B, "MPD_meas",     "MPD measured (alias)",            decode_pd_x10),
 ]
 
 
@@ -143,33 +125,32 @@ LIVE_REGISTERS = [
 # Display
 # ---------------------------------------------------------------------------
 
-def read_and_print(spi):
-    W = (4, 16, 32, 12, 6, 8)
-    header = ("Reg", "Name", "Description", "Raw (hex)", "Value", "Unit")
+def read_and_print(ser):
+    W = (4, 14, 32, 10, 8, 8)
+    header = ("Reg", "Name", "Description", "Raw(hex)", "Value", "Unit")
     sep = "  ".join("-" * w for w in W)
-    hdr = "  ".join(str(h).ljust(w) for h, w in zip(header, W))
 
     print()
     print("=" * (sum(W) + 2 * (len(W) - 1)))
-    print("  nanoITLA Live Hardware Values")
+    print("  nanoITLA Live Hardware Values  (UART)")
     print("=" * (sum(W) + 2 * (len(W) - 1)))
-    print(hdr)
+    print("  ".join(str(h).ljust(w) for h, w in zip(header, W)))
     print(sep)
 
     errors = 0
     for reg, name, desc, decode in LIVE_REGISTERS:
         try:
-            ce, xe, _, raw = spi_read(spi, reg)
+            ce, xe, _, raw = uart_read(ser, reg)
         except Exception as ex:
-            print("  ".join(s.ljust(w) for s, w in zip(
-                [f"0x{reg:02X}", name, desc, "EXC", str(ex)[:10], ""], W)))
+            row = [f"0x{reg:02X}", name, desc[:W[2]], "TIMEOUT", str(ex)[:8], ""]
+            print("  ".join(str(s).ljust(w) for s, w in zip(row, W)))
             errors += 1
             continue
 
         if ce:
-            tag, val, unit = "CE-ERR", "—", "checksum error"
+            tag, val, unit = "CE-ERR", "—", "checksum err"
         elif xe:
-            tag, val, unit = f"0x{raw:04X}", "XE", "execution error"
+            tag, val, unit = f"0x{raw:04X}", "XE", "exec error"
             errors += 1
         else:
             tag = f"0x{raw:04X}"
@@ -191,39 +172,34 @@ def read_and_print(spi):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="nanoITLA live hardware sensor readout (read-only, Pi SPI)")
-    parser.add_argument("--bus",   type=int, default=0,
-                        help="SPI bus (default 0)")
-    parser.add_argument("--dev",   type=int, default=0,
-                        help="SPI device/CS (default 0)")
-    parser.add_argument("--speed", type=int, default=10_000_000,
-                        help="SPI clock Hz (default 10 MHz)")
-    parser.add_argument("--mode",  type=int, default=0,
-                        help="SPI mode 0-3 (default 0)")
-    parser.add_argument("--loop",  type=float, default=0,
+        description="nanoITLA live hardware sensor readout (UART 115200 8N1)")
+    parser.add_argument("--port",    default="/dev/ttyUSB0",
+                        help="Serial port (default /dev/ttyUSB0)")
+    parser.add_argument("--baud",    type=int, default=115200,
+                        help="Baud rate (default 115200)")
+    parser.add_argument("--timeout", type=float, default=0.5,
+                        help="Read timeout seconds (default 0.5)")
+    parser.add_argument("--loop",    type=float, default=0,
                         help="Refresh interval in seconds (0 = run once)")
     args = parser.parse_args()
 
-    spi = spidev.SpiDev()
-    spi.open(args.bus, args.dev)
-    spi.max_speed_hz = args.speed
-    spi.mode = args.mode
-    spi.bits_per_word = 8
+    ser = serial.Serial(args.port, args.baud, timeout=args.timeout)
+    time.sleep(0.1)  # let UART settle
+    ser.reset_input_buffer()
 
-    print(f"SPI /dev/spidev{args.bus}.{args.dev}  "
-          f"speed={args.speed/1e6:.1f} MHz  mode={args.mode}")
+    print(f"UART {args.port}  baud={args.baud}  timeout={args.timeout}s")
 
     try:
         if args.loop > 0:
             while True:
-                read_and_print(spi)
+                read_and_print(ser)
                 time.sleep(args.loop)
         else:
-            read_and_print(spi)
+            read_and_print(ser)
     except KeyboardInterrupt:
         print("\nInterrupted.")
     finally:
-        spi.close()
+        ser.close()
 
 
 if __name__ == "__main__":
