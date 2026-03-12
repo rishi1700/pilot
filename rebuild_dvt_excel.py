@@ -110,7 +110,7 @@ ALL = [
     # ── §9.8 Health / Dither / Age ─────────────────────────────────────────────
     ("§9.8  Health / Dither / Age", "Currents AEA",  "0x57", "RO", "—", "0x0008", "TEC / Diode / MON / SOA", "PASS"),
     ("§9.8  Health / Dither / Age", "Temps AEA",     "0x58", "RO", "—", "0x0004", "Diode 25.00°C / Case",    "PASS"),
-    ("§9.8  Health / Dither / Age", "Case Temp",     "0x59", "RO", "—", "0x0000", "0.00 °C",                 "PASS"),
+    ("§9.8  Health / Dither / Age", "Case Temp",     "0x59", "RO", "—", "0x0000", "0.00 °C (firmware default)", "PASS"),
     ("§9.8  Health / Dither / Age", "Dither Period", "0x5A", "RO", "—", "0x0064", "100",                     "PASS"),
     ("§9.8  Health / Dither / Age", "Dither BW",     "0x5B", "RO", "—", "0x0000", "0",                       "PASS"),
     ("§9.8  Health / Dither / Age", "Device Cap 1",  "0x5C", "RO", "—", "0x0000", "0",                       "PASS"),
@@ -127,7 +127,7 @@ ALL = [
     ("§9.9  Manufacturer-Specific", "Phase Voltage",   "0x82", "RO", "—",      "0x2F58", "121.20 (×100)",   "PASS"),
     ("§9.9  Manufacturer-Specific", "Gain Bias",       "0x83", "RO", "—",      "0x007B", "1.23 (×100)",     "PASS"),
     ("§9.9  Manufacturer-Specific", "SOA Current",     "0x84", "RO", "—",      "0x007B", "1.23 (×100)",     "PASS"),
-    ("§9.9  Manufacturer-Specific", "Temperature",     "0x85", "RO", "—",      "0xFE3E", "-45.0 °C",        "PASS"),
+    ("§9.9  Manufacturer-Specific", "Temperature",     "0x85", "RO", "—",      "0xFE3E", "-45.0 °C (firmware default)", "PASS"),
     ("§9.9  Manufacturer-Specific", "Main PD (MPD)",   "0x86", "RO", "—",      "0x0000", "0.00 mV",         "PASS"),
     ("§9.9  Manufacturer-Specific", "Etalon PD (WLPD)","0x87","RO", "—",      "0x0000", "0.00 mV",         "PASS"),
     ("§9.9  Manufacturer-Specific", "WM PD (WMPD)",    "0x88", "RO", "—",      "0x0000", "0.00 mV",         "PASS"),
@@ -139,7 +139,7 @@ ALL = [
     ("§9.9  Manufacturer-Specific", "Ring-2 Tuner",    "0x8E", "RW", "0x15AE", "0x15AE", "5.55 V (÷100)",   "PASS"),
     ("§9.9  Manufacturer-Specific", "SOA Tuner",       "0x8F", "RW", "0x007B", "0x007B", "1.23 (÷100)",     "PASS"),
     ("§9.9  Manufacturer-Specific", "Gain Bias Tuner", "0x90", "RW", "0x007B", "0x007B", "123",             "PASS"),
-    ("§9.9  Manufacturer-Specific", "TEC Raw",         "0x91", "RW", "0xFFD3", "0xFFD3", "-45 (signed)",    "PASS"),
+    ("§9.9  Manufacturer-Specific", "TEC Raw",         "0x91", "RW", "0xFFD3", "0xFFD3", "-45 (firmware default)", "PASS"),
     ("§9.9  Manufacturer-Specific", "Reserved 0x92",   "0x92", "RO", "—",      "0x0000", "0",               "PASS"),
 ]
 
@@ -231,6 +231,7 @@ notes = [
     "• Channel register (0x30) DVT note: write tested with valid channel 1; default power-on value 0 correctly returns XE per MSA spec.",
     "• StatusF/StatusW alarm bits (DIS, ALM, SRQ) are expected at power-on — laser not yet enabled.",
     "• PD registers (0x86–0x8B) return 0 mV as laser output is off during register testing.",
+    "• Temperature / TEC registers (0x59, 0x85, 0x91) show firmware defaults (−45 °C / 0 °C); real values require updated firmware flash and live ADC readings.",
 ]
 for j, note in enumerate(notes):
     row_n = nr + 1 + j
