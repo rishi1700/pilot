@@ -759,7 +759,7 @@ int main(void)
 
 					//For current, voltage, and PDs test, keep this line comment
 					//For the TEC controller keep this line uncomment
-					UrtPrint("%f,%f,%f,%f,%f,%u, %f, %d,%f ,%d\r\n",Temp_uc_f,TECIH,TECIL, 2000.0, setpoint, adc_val, setpoint-adc_val, PWM, TECV, itla_get_direct_ctrl_mode() );
+					UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
 					delay(100);
 
 					/*int MPD_data=MPD_read();
@@ -1180,7 +1180,7 @@ int main(void)
 						//actual=(float)(adc_val>>4 & 0xfff);
 
 						//UrtPrint("%d\r\n",((adc_val2 & 0xFFFF) * 2520 / 65536) );
-						UrtPrint("%u,%u,%u,%u,%f,%f\r\n", MPD_data & 0xFFFF,WLPD_data& 0xFFFF,WMPD_data& 0xFFFF, adc_val,Temp_uc_f,TECV);
+						UrtPrint("%u,%u,%u,%u,%d,%d\r\n", MPD_data & 0xFFFF,WLPD_data& 0xFFFF,WMPD_data& 0xFFFF, adc_val,(int)(Temp_uc_f*100),(int)(TECV*100));
 
 						//========== clear received buffer==========
 							for(int m=0;m<20;m++)
@@ -1364,7 +1364,7 @@ int main(void)
 			
        if (pADI_UART->RFC >= 4) {
 				 if (cont == 1){
-					 UrtPrint("%f,%f,%f,%f,%f,%u, %f, %d,%f ,%d\r\n",Temp_uc_f,TECIH,TECIL, 2000.0, setpoint, adc_val, setpoint-adc_val, PWM, TECV, itla_get_direct_ctrl_mode() );
+					 UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
 					 cont = 0;
 							uint8_t b[4];
 							for (int i=0; i<4; i++) b[i] = pADI_UART->RXTX;
@@ -1416,7 +1416,7 @@ int main(void)
 									(int16_t)(temp_c * 100.0f)     /* degC x100 (case=diode, same sensor) */
 								);
 							}
-						UrtPrint("%f,%f,%f,%f,%f,%u, %f, %d,%f ,%d\r\n",Temp_uc_f,TECIH,TECIL, 2000.0, setpoint, adc_val, setpoint-adc_val, PWM, TECV, itla_get_direct_ctrl_mode() );
+						UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
 					}
 			 
 				}
