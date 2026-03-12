@@ -73,10 +73,6 @@ extern uint32_t itla_handle_frame(uint32_t in_frame,
                                   uint8_t *out_status,
                                   uint8_t *out_reg,
                                   uint16_t *out_data);
-extern void itla_update_hw_telemetry(int16_t ctemp_c100,
-                                     int16_t tec_ma10,
-                                     uint16_t oop_mv,
-                                     int16_t case_c100);
 
 
 static void uart1_init(void) {
@@ -131,6 +127,7 @@ void SetGain(float Current);
 void SetR1(float Voltage);
 void SetR2(float Voltage);
 void SetPhase(float Voltage);
+void SetTemp(float Temperature);
 
 float last_time=0;
 float now=0;
@@ -357,7 +354,7 @@ int AdcIntTest(void)
     while (conversionDone == 0)
         ; // wait for conversion finish
 
-    UrtPrint("Adc Sample AIN0 Channel with Interrupt: \r\n");
+    //UrtPrint("Adc Sample AIN0 Channel with Interrupt: \r\n");
     for (uint32_t i = 0; i < 20; i++) {
         AdcData16b[i] = (uint16_t)AdcData[i];
         //UrtPrint("Hex:%x, %u mV \r\n", (AdcData[i] & 0xFFFF), ((AdcData[i] & 0xFFFF) * 2520 / 65536));
@@ -462,23 +459,19 @@ void UART_Int_Handler(void)
     uint32_t iir = UrtIntSta(pADI_UART);
     sta = (iir & BITM_UART_IIR_STAT) >> BITP_UART_IIR_STAT;
 	
-	if (pADI_UART->RFC > 0)
-  	{
-  		delay(200);
-  		int rfc = (int)pADI_UART->RFC;
-  		if (rfc < 0) rfc = 0;
-  		if (rfc > (int)(sizeof(urt_data) - 1)) rfc = (int)(sizeof(urt_data) - 1);
-  		counts = rfc;
-  		delay(200);
-  		for (int i = 0; i < counts; i++)
-  		{
-  			urt_data[i] = (char)pADI_UART->RXTX;
-  		}
-  		urt_data[counts] = '\0';
-  		UrtFifoClr(pADI_UART, RX_CLR);
-  	}
-  	UrtFifoClr(pADI_UART, RX_CLR);
-  	UrtFifoClr(pADI_UART, TX_CLR);
+		if(pADI_UART->RFC>0)
+			{
+			delay(200);
+			counts=pADI_UART->RFC;
+			delay(200);
+			for(int i=0;i<counts;i++)
+				{
+					urt_data[i]=pADI_UART->RXTX;
+				}
+				UrtFifoClr(pADI_UART, RX_CLR);
+			}
+			UrtFifoClr(pADI_UART, RX_CLR);
+			UrtFifoClr(pADI_UART, TX_CLR);
 }
 
 
@@ -521,47 +514,11 @@ void TecInit(void)
     pADI_MISC->USERKEY1 = 0x0;
 }
 
-int read_parameters(int register_add)
-{
-    NVIC_DisableIRQ(ADC_IRQn);
-
-    AdcIntEn(true);
-
-    if (register_add == 21) {
-        AdcPinInt(ENUM_ADC_MUXOUT, 0b1110 << 5, 0);
-    } else if (register_add == 22) {
-        AdcPinInt(ENUM_ADC_MUXOUT, 0b1101 << 5, 0);
-    } else if (register_add == 8) {
-        AdcPinInt(ENUM_ADC_MUXOUT, ENUM_ADC_VDACV8 << 5, 0);
-    } else if (register_add == 16) {
-        AdcIntEn(false);
-        AdcPinExt(ENUM_ADC_VTEMP);
-    }
-
-    AdcGo(ENUM_ADC_CONT, 0);
-
-    int AdcData = 0;
-    for (uint32_t i = 0; i < 20;) {
-        if (register_add == 16) {
-            AdcData = AdcRd(ENUM_ADC_VTEMP);
-        } else {
-            AdcData = AdcRd(ENUM_ADC_MUXOUT);
-        }
-        if (AdcData & BITM_ADC_ADCDAT_N__RDY)
-            i++;
-    }
-
-    AdcGo(ENUM_ADC_IDLE, 0);
-
-    return AdcData & 0xFFFF;
-}
-
 extern uint32_t itla_handle_frame(uint32_t in_frame,
                                   uint8_t *out_ce,
                                   uint8_t *out_status,
                                   uint8_t *out_reg,
                                   uint16_t *out_data);
-extern uint8_t itla_get_direct_ctrl_mode(void);
 
 
 static void uart1_write_bytes(const uint8_t *buf, int len) {
@@ -584,7 +541,6 @@ int main(void)
 	float output=0;
 	 float Temperature = 0;
 	 int PWM = 0;
-	int cont = 1;
 	
 
 	
@@ -596,7 +552,7 @@ int main(void)
   DioOenPin(pADI_GPIO2, PIN3, 1);
 	DioClr(pADI_GPIO2, PIN3);
 	
-	//UART_Setup();
+	UART_Setup();
 	time_0_init();
 	
   ADuCM430Setup();
@@ -622,8 +578,8 @@ int main(void)
 		VDacWr(5, 0x0); // SOA current
 		VDacSync(0x1FF); // Set the output at the initial values (cero).
 		
-		//DioSet(pADI_GPIO2, PIN3);
-		//V_dac_write(2,0xfff);
+		DioSet(pADI_GPIO2, PIN3);
+		V_dac_write(2,0xfff);
 		
     AdcInit();
 
@@ -653,28 +609,16 @@ int main(void)
 		
 		actual=0;
 		volatile int adc_val=0;
-	volatile int adc_val2=0;
-	int MPD_data=0;
+		volatile int adc_val2=0;
+		int MPD_data=0;
     int WLPD_data=0;
     int WMPD_data=0;
-	float TECV = 0;
-
-	int ADCDATA21 = 0;
-	int ADCDATA22 = 0;
-	float TECIH = 0;
-	float TECIL = 0;
-	int VDAC8P = 0;
-	float VLDR=0;
-	float VSFB=0;
-	float VDAC8_float = 0;
-	int Temp_uc_i = 0;
-	float Temp_uc_f = 0;
 		
 		WdtGo(false);
     SystemInit();
     uart1_init();
 		
-   
+    AdcInit();
     // PD sampling divider: sample ADC PD channels every N handled frames
     static uint32_t pd_sample_div = 0;
     const uint32_t PD_SAMPLE_EVERY_N_FRAMES = 1;  // tune as needed
@@ -706,725 +650,54 @@ int main(void)
 				}
 					
 				VDacWrAutoSync(8, PWM);
-				
-				  
-					
-					
-				static uint8_t last_direct_mode = 0;
-				uint8_t direct_mode = itla_get_direct_ctrl_mode();
-				if (direct_mode && !last_direct_mode)
-				{
-					// Entering ASCII/direct mode: configure UART0 once
-					UART_Setup();
-					UrtFifoClr(pADI_UART, RX_CLR);
-					UrtFifoClr(pADI_UART, TX_CLR);
-					counts = 0;
-					urt_data[0] = '\0';
-					UrtPrint("DIRECT MODE ON\r\n");
-				}
-				if (!direct_mode && last_direct_mode)
-				{
-					// Leaving ASCII/direct mode: clear any pending UART0 bytes
-					UrtFifoClr(pADI_UART, RX_CLR);
-					UrtFifoClr(pADI_UART, TX_CLR);
-					counts = 0;
-					urt_data[0] = '\0';
-					UrtPrint("DIRECT MODE OFF\r\n");
-				}
-				last_direct_mode = direct_mode;
-
-				if (direct_mode)
-				{
-					//// Add this instruccions, RISHI /////
-					ADCDATA21 = read_parameters(21);
-					TECV = ((((float)ADCDATA21 / 65535) * 5.04) - 1.25) * 4;
-
-					ADCDATA22 = read_parameters(22);
-					TECIH = (1.25 - ((ADCDATA22 / 65535.0) * 5.04)) / 0.525;
-					TECIL = (((ADCDATA22 / 65535.0) * 5.04) - 1.25) / 0.525;
-
-					VDAC8P = read_parameters(8) * 2;
-					VDAC8_float = VDAC8P * 2.5 / 65535.0;
-
-					VLDR = 1.5 + (20.0 * (1.25 - VDAC8_float));
-					VSFB = VLDR + (5.0 * (VDAC8_float - 1.25));
-
-					Temp_uc_i = read_parameters(16);
-					Temp_uc_f = (float)(Temp_uc_i / 5.94) - 273.15;
-
-					//UrtPrint("%f\r\n", output);
-					//UrtPrint("%u\r\n", (adc_val&0xffff)*2520/65535);
-					//UrtPrint("%f,%f,%u,%f,\r\n",2000.0, setpoint, adc_val, setpoint-adc_val );
-					//UrtPrint("Output: %f, actual:%f, setpoint: %f, adc_val %u,vdac %f, VDACP8 %d \r\n",output, actual, setpoint, adc_val,(output+2080)*4095/2500, (((int)(output+2080)*4095/2500)&0xFFF));
-
-					//For current, voltage, and PDs test, keep this line comment
-					//For the TEC controller keep this line uncomment
-					UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
-					delay(100);
-
-					/*int MPD_data=MPD_read();
-					int WLPD_data=WLPD_read();
-					int WMPD_data=WMPD_read();*/
-
-					MPD_data=MPD_read();
-					WLPD_data=WLPD_read();
-					WMPD_data=WMPD_read();
-
-					//UrtPrint("%u,%u,%u,   %f,%f,%u,%f,\r\n", MPD_data & 0xFFFF,WLPD_data& 0xFFFF,WMPD_data& 0xFFFF,2000.0, setpoint, adc_val, setpoint-adc_val);
-
-					if (counts > 0)
-					{
-						char *cmd = 0;
-						char *val = 0;
-						char received[20] = {0};
-
-						// Copy safely into received (avoid overflow)
-						for (int i = 0; i < counts && i < (int)(sizeof(received) - 1); i++)
-						{
-							received[i] = urt_data[i];
-						}
-						received[sizeof(received) - 1] = '\0';
-
-						cmd = strtok(received, s);
-						val = strtok(0, s);
-						delay(100);
-
-						if (cmd && strlen(cmd) > 0)
-						{
-							int len = 0;
-							char *val_echo = 0;
-							if (val)
-							{
-								len = (int)strlen(val);
-								val_echo = val;
-							}
-
-					//=========================================IGAIN=======================================
-				    if(!(strcmp("GAIN",cmd)))
-						{
-
-							k=atoi(val);
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-
-							if(k>=0 && k<=0xffff)
-							{
-							I_dac_write(k);
-							sprintf(printBuffer, "GAIN current set to \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-							else
-							{
-							sprintf(printBuffer, "Invalid input \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							sprintf(printBuffer, "Input range is (0-65535) \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-
-			//=========================================SOA=======================================
-			if(!(strcmp("SOAI",cmd)))
-					{
-							k=atoi(val);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-
-							if(k>=0 && k<=0xfff)
-							{
-							V_dac_write(5,k);
-							sprintf(printBuffer, "SOA current set to \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-							else
-							{
-
-							sprintf(printBuffer, "Invalid input \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							sprintf(printBuffer, "Input range is (0-4095) \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-			//=========================================RING1=======================================
-			if(!(strcmp("SR1V",cmd)))
-					{
-						k=atoi(val);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-
-							if(k>=0 && k<=0xfff)
-							{
-							V_dac_write(1,k);
-							sprintf(printBuffer, "RING1 voltage set to \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-							else
-							{
-							sprintf(printBuffer, "Invalid input \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							sprintf(printBuffer, "Input range is (0-4095) \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-
-			//=========================================RING2=======================================
-			if(!(strcmp("SR2V",cmd)))
-					{
-						k=atoi(val);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-
-							if(k>=0 && k<=0xfff)
-							{
-							V_dac_write(3,k);
-							sprintf(printBuffer, "Ring2 voltage set to \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-							else
-							{
-							sprintf(printBuffer, "Invalid input \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							sprintf(printBuffer, "Input range is (0-4095) \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-					//=========================================Phase=======================================
-			if(!(strcmp("PHSE",cmd)))
-					{
-						k=atoi(val);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-
-							if(k>=0 && k<=0xfff)
-							{
-							V_dac_write(7,k);
-							sprintf(printBuffer, "Phase voltage set to \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-							else
-							{
-							sprintf(printBuffer, "Invalid input \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							sprintf(printBuffer, "Input range is (0-4095) \r\n");
-							UrtSendString(pADI_UART, printBuffer);
-							UrtFifoClr(pADI_UART, TX_CLR);
-							UrtFifoClr(pADI_UART, RX_CLR);
-							delay(100);
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-				//=======================================Enable Ring Voltage=======================================
-			if(!(strcmp("ENRV",cmd)))
-			{
-
-					sprintf(printBuffer, "\r\n");
-					UrtSendString(pADI_UART, printBuffer);
-
-					sprintf(printBuffer, "Voltage supply enabled");
-					UrtSendString(pADI_UART, printBuffer);
-
-
-					UrtFifoClr(pADI_UART, TX_CLR);
-					delay(100);
-
-
-					V_dac_write(2,0xfff);
-
-
-				//========== clear received buffer==========
-					for(int m=0;m<20;m++)
-					{
-					received[m]=0;
-					}
-					*cmd=0;
-					counts=0;
-				//========== clear received buffer==========
-			}
-				//=======================================Disable Ring Voltage=======================================
-			if(!(strcmp("DSRV",cmd)))
-			{
-
-							sprintf(printBuffer, "\r\n");
-							UrtSendString(pADI_UART, printBuffer);
-
-							sprintf(printBuffer, "Voltage supply disabled");
-							UrtSendString(pADI_UART, printBuffer);
-
-
-							V_dac_write(2,0x000);
-
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-
-			//================================Disable -10V Supply===================================
-			if(!(strcmp("ENNV",cmd)))
-			{
-						DioSet(pADI_GPIO2, PIN3);
-
-						sprintf(printBuffer, "\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "-10 Voltage supply enabled");
-						UrtSendString(pADI_UART, printBuffer);
-						UrtFifoClr(pADI_UART, TX_CLR);
-						delay(100);
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-			}
-
-				//================================Disable -10V Supply===================================
-			if(!(strcmp("DSNV",cmd)))
-			{
-						DioClr(pADI_GPIO2, PIN3);
-
-						sprintf(printBuffer, "\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "-10V supply disabled");
-						UrtSendString(pADI_UART, printBuffer);
-						UrtFifoClr(pADI_UART, TX_CLR);
-						delay(100);
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-				}
-			//============================Set temperature===========================
-
-					if(!(strcmp("STMP",cmd)))
-					{
-
-							k=atoi(val);
-							if(k>10 && k<2500)
-							{
-								setpoint=k*1.0;
-
-
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-								UrtFifoClr(pADI_UART, TX_CLR);
-								delay(100);
-							}
-							else
-							{
-								UrtPrint("invalid input \r\n");
-							}
-
-							k=0;
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-        			//===============================Read temp==============================
-					if(!(strcmp("RTMP",cmd)))
-					{
-
-						adc_val2= Adc_read();
-						//actual=(float)(adc_val>>4 & 0xfff);
-
-						//UrtPrint("%d\r\n",((adc_val2 & 0xFFFF) * 2520 / 65536) );
-						UrtPrint("%u,%u,%u,%u,%d,%d\r\n", MPD_data & 0xFFFF,WLPD_data& 0xFFFF,WMPD_data& 0xFFFF, adc_val,(int)(Temp_uc_f*100),(int)(TECV*100));
-
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-					}
-
-			//================================HELP===================================
-			if(!(strcmp("HELP",cmd)))
-			{
-						sprintf(printBuffer, "List of commands\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "GAIN#{put value in range 0 to 65535} to set laser curret\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "SOAI#{put value in range 0 to 4095} to set SOA current \r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "SR1V#{put value in range 0 to 4095} to set ring 1 voltage\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "SR2V#{put value in range 0 to 4095} to set ring 2 voltage\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "PHSE#{put value in range 0 to 4095} to set phase voltage\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "ENRV# to enable voltage regulator\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "DSRV# to disable voltage regulator\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "ENNV# to enable LDO\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "DSNV# to disable LDO\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "STMP# to set temperature \r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "RTMP# to read temperature as mV\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "Power up sequence \r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "Run \r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "1. ENRV# \r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "2. ENNV#\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "3. GAIN#{0-65535}\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "4. SOAI#{0-4095}\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "5. SR1V#{0-4095}\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "6. SR2V#{0-4095}\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "7. PHSE#{0-4095}\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "8. STMP#{1536-3840} where value 2048 corresponds to 25 deg. C\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						sprintf(printBuffer, "9. RTMP#\r\n");
-						UrtSendString(pADI_UART, printBuffer);
-
-						UrtFifoClr(pADI_UART, TX_CLR);
-						UrtFifoClr(pADI_UART, RX_CLR);
-						delay(100);
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-			}
-
-					if(!(strcmp("ki",cmd)))
-					{
-
-							k=atoi(val);
-							if(k>10 && k<1000)
-							{
-								ki=k/1000;
-
-
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-								UrtFifoClr(pADI_UART, TX_CLR);
-								delay(100);
-							}
-							else
-							{
-								UrtPrint("invalid input \r\n");
-							}
-
-							k=0;
-							//PID_Init(&pid, 0.7f, ki, kp, 0.01f, -1000.0f, 1000.0f);  // dt = 10ms
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-
-					}
-
-					if(!(strcmp("kd",cmd)))
-					{
-
-							k=atoi(val);
-							if(k>10 && k<1000)
-							{
-								kd=k/1000;
-
-
-								while(len>=0)
-								{
-								while(!(pADI_UART->LSR & BITM_UART_LSR_THRE));
-								pADI_UART->RXTX=*val;
-								++val;
-								len--;
-								}
-								UrtFifoClr(pADI_UART, TX_CLR);
-								delay(100);
-							}
-							else
-							{
-								UrtPrint("invalid input \r\n");
-							}
-
-							k=0;
-							//PID_Init(&pid, 0.76f, ki, kp, 0.1f, -1800.0f, 1800.0f);  // dt = 10ms
-						//========== clear received buffer==========
-							for(int m=0;m<20;m++)
-							{
-							received[m]=0;
-							}
-							*cmd=0;
-							counts=0;
-						//========== clear received buffer==========
-
-						}
-						}
-						// just to here. RISHI
-						// Clear UART buffer after processing
-						counts = 0;
-						urt_data[0] = '\0';
-					}
-					else {
-						delay(100);
-						delay(100);
-					}
+				delay(100);
+				delay(100);
 			
 			
        if (pADI_UART->RFC >= 4) {
-				 if (cont == 1){
-					 UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
-					 cont = 0;
-							uint8_t b[4];
-							for (int i=0; i<4; i++) b[i] = pADI_UART->RXTX;
+            uint8_t b[4];
+            for (int i=0; i<4; i++) b[i] = pADI_UART->RXTX;
 
-							uint32_t in_frame = (b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3];
-							uint8_t ce=0, status=0, reg=0; uint16_t data=0;
+            uint32_t in_frame = (b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3];
+            uint8_t ce=0, status=0, reg=0; uint16_t data=0;
 
-							uint32_t out_frame = itla_handle_frame(in_frame,&ce,&status,&reg,&data);
+            uint32_t out_frame = itla_handle_frame(in_frame,&ce,&status,&reg,&data);
+					
+            uint8_t o[4] = {
+                (out_frame>>24)&0xFF,
+                (out_frame>>16)&0xFF,
+                (out_frame>>8)&0xFF,
+                out_frame&0xFF
+            };
+            uart1_write_bytes(o,4);
 						
-							uint8_t o[4] = {
-									(out_frame>>24)&0xFF,
-									(out_frame>>16)&0xFF,
-									(out_frame>>8)&0xFF,
-									out_frame&0xFF
-							};
-							uart1_write_bytes(o,4);
-							
-							//UrtPrint("%f,%f", g_v1,g_v2);	
-							//V_dac_write(7,g_v1);
-							
-								if (!itla_get_direct_ctrl_mode()) {
-									SetSOA(g_soa);			//fine
-									SetGain(0);		//fine
-									delay(5000);
-
-									SetGain(g_gain);		//fine
-									SetR1(g_v1);				//fine
-									SetR2(g_v2);				//fine
-									SetPhase(g_v3);			//fine
-									SetTemp(g_temp)
-								}
-
-							// Update measured PD values from ADC periodically (keeps IO fast)
-							if (++pd_sample_div >= PD_SAMPLE_EVERY_N_FRAMES) {
-								pd_sample_div = 0;
-								g_mpd_meas  = (float)MPD_read();   // mV
-								g_wlpd_meas = (float)WLPD_read();  // mV
-								g_wmpd_meas = (float)WMPD_read();  // mV
-
-								/* Read MCU die temp and TEC current, bridge into nanoITLA */
-								int tuc = read_parameters(16);
-								float temp_c = (float)(tuc / 5.94) - 273.15f;
-								int adcTEC = read_parameters(22);
-								float tec_A = (1.25f - ((adcTEC / 65535.0f) * 5.04f)) / 0.525f;
-								itla_update_hw_telemetry(
-									(int16_t)(temp_c * 100.0f),    /* degC x100 (diode) */
-									(int16_t)(tec_A  * 10.0f),     /* mA x10   */
-									(uint16_t)(g_mpd_meas),        /* MPD mV   */
-									(int16_t)(temp_c * 100.0f)     /* degC x100 (case=diode, same sensor) */
-								);
-							}
-						UrtPrint("%d,%d,%d,%d,%d,%u, %d, %d,%d ,%d\r\n",(int)(Temp_uc_f*100),(int)(TECIH*1000),(int)(TECIL*1000),2000,(int)setpoint,adc_val,(int)(setpoint-adc_val),PWM,(int)(TECV*100),itla_get_direct_ctrl_mode());
-					}
-			 
-				}
+						//UrtPrint("%f,%f", g_v1,g_v2);	
+						//V_dac_write(7,g_v1);
+						
+						SetSOA(g_soa);			//fine
+						SetGain(0);		//fine
+						delay(5000);
+						
+						
+						SetGain(g_gain);		//fine
+						SetR1(g_v1);				//fine
+						SetR2(g_v2);				//fine
+						SetPhase(g_v3);			//fine
+						//SetTemp(g_temp);
+						//TEmperature
+						// Update measured PD values from ADC periodically (keeps IO fast)
+						if (++pd_sample_div >= PD_SAMPLE_EVERY_N_FRAMES) {
+							pd_sample_div = 0;
+							g_mpd_meas  = (float)MPD_read();   // mV
+							g_wlpd_meas = (float)WLPD_read();  // mV
+							g_wmpd_meas = (float)WMPD_read();  // mV
+						}
+        }	
 		}			
-	}
 }
-	
-	void IdacSetup(void)
+
+
+void IdacSetup(void)
 {
     IDacCfg(0, ENUM_IDAC_IDAC0CON_RANGE_RANGE150M, 0, ENUM_IDAC_IDAC0CON_CLRBIT_CLRB);
 }
@@ -1493,35 +766,68 @@ void SetSOA(float Current)
 {
 	    int Data;
 	    Data = (int)((float)(3.0225 * Current) - 16.605);
-			V_dac_write(5, Data);
+			if (Data >0){
+				V_dac_write(5, Data);
+			}
+			else{
+				V_dac_write(5, 0);;
+			}
 }
 
 void SetGain(float Current)
 {
 			int Data;
 	    Data =(int)(((float)(25.779 * Current) + 168.93) - 168);
-			I_dac_write(Data);
+			
+		  if (Data >0){
+				I_dac_write(Data);
+			}
+			else{
+				I_dac_write(0);
+			}
 }
 
 void SetR1(float Voltage)
 {			
 			int Data;
 	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
-			V_dac_write(1, Data);
+	    if (Data >0){
+				V_dac_write(1, Data);
+			}
+			else{
+				V_dac_write(1, 0);
+			}
 }
 
 void SetR2(float Voltage)
 {
 			int Data;
 	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
-			V_dac_write(3, Data);
+		  if (Data >0){
+				V_dac_write(3, Data);
+			}
+			else{
+				V_dac_write(3, 0);
+			}
 }
 
 void SetPhase(float Voltage)
 {	
 			int Data;
 	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
-			V_dac_write(7, Data);
+			if (Data >0){
+				V_dac_write(7, Data);
+			}
+			else{
+				V_dac_write(7, 0);
+			}
 }
 
+void SetTemp(float Temperature)
+{
+			int Data;
+	    Data =(int)((float)(-27.287 * Temperature) + 1957.3);
+			setpoint = Data;
+
+}
 		
