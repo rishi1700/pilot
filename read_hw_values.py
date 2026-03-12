@@ -86,7 +86,7 @@ def _signed16(raw):
 def decode_thz(raw):      return f"{raw}", "THz"
 def decode_ghz10(raw):    return f"{raw / 10.0:.1f}", "GHz"
 def decode_centi_v(raw):  return f"{raw / 100.0:.2f}", "V"
-def decode_temp_x10(raw): return f"{raw / 10.0:.1f}", "°C"
+def decode_temp_x10(raw): return f"{_signed16(raw) / 10.0:.1f}", "°C"
 def decode_casetemp(raw): return f"{_signed16(raw) / 100.0:.2f}", "°C"
 def decode_pd_x10(raw):   return f"{raw / 10.0:.1f}", "ADC"
 
