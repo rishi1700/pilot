@@ -3066,18 +3066,24 @@ def run_9_6_detail_table():
                 if dec:
                     msg += f" [{dec}]"
             else:
-                # Write a harmless echo of the current value back to verify RW path
-                ce_w, st_w, _, _ = reg_write(reg, v0)
+                # Write a harmless echo of the current value back to verify RW path.
+                # Special case: Channel (0x30) default is 0 which is MSA-invalid (channels
+                # are 1-based).  Use channel 1 as the probe value so the write succeeds,
+                # then restore the original value.
+                write_val = v0
+                if reg == 0x30 and v0 == 0:
+                    write_val = 1
+                ce_w, st_w, _, _ = reg_write(reg, write_val)
                 ce_r, st_r, v1 = reg_read(reg)
                 try:
-                    reg_write(reg, v0)  # restore (already same value)
+                    reg_write(reg, v0)  # restore original
                 except Exception:
                     pass
                 ok = (ce_w == 0 and _status_ok_for_test(st_w, allow_aea=True)
                       and ce_r == 0 and _status_ok_for_test(st_r, allow_aea=True)
-                      and v1 == v0)
+                      and v1 == write_val)
                 msg = (f"{name}: REG=0x{reg:02X} mode=RW "
-                       f"W=0x{v0:04X} R=0x{v1:04X} "
+                       f"W=0x{write_val:04X} R=0x{v1:04X} "
                        f"CEw={ce_w} STw={st_w} CEr={ce_r} STr={st_r}")
                 if dec:
                     msg += f" [{dec}]"
