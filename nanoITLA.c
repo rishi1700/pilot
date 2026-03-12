@@ -153,6 +153,7 @@ static int  py_handle_register(uint8_t r,uint8_t w,uint16_t d,uint8_t *xe,uint16
 /* ======================================================================= */
 /* Always compiled (needed on MCU and as fallback on desktop) */
 static uint16_t st_StatusF=0, st_StatusW=0, st_SRQ_MASK=0x1FBFu;
+static uint16_t st_LstRsp=0;   /* 0x13: last response data field */
 static uint8_t st_busy=0;
 
 /* Status register bit positions per OIF-ITLA-MSA-01.3 (Table 10.2-x). */
@@ -262,14 +263,28 @@ typedef struct {
 #define ITLA_CAP97_DEFAULT_FTFR_MHZ 5000u
 #define ITLA_CAP97_DEFAULT_OPSL     0
 #define ITLA_CAP97_DEFAULT_OPSH     2000
-#define ITLA_CAP97_DEFAULT_LGRID10  250u
+#define ITLA_CAP97_DEFAULT_LGRID10  500u   /* 50.0 GHz grid */
 #define ITLA_CAP97_DEFAULT_LGRID2   0
+/* §9.7 min/max lasing frequency (C-band ITU grid) */
+#define ITLA_CAP97_DEFAULT_MINFREQ_THZ  191u
+#define ITLA_CAP97_DEFAULT_MINFREQ_G10  7000u  /* 191.700 THz */
+#define ITLA_CAP97_DEFAULT_MAXFREQ_THZ  196u
+#define ITLA_CAP97_DEFAULT_MAXFREQ_G10  7000u  /* 196.700 THz */
+#define ITLA_CAP97_DEFAULT_MINPOWER     0      /* 0.00 dBm */
+#define ITLA_CAP97_DEFAULT_MAXPOWER     1300   /* 13.00 dBm */
 
 static uint16_t st_FTFR_MHz = ITLA_CAP97_DEFAULT_FTFR_MHZ;
 static int16_t  st_OPSL = ITLA_CAP97_DEFAULT_OPSL;
 static int16_t  st_OPSH = ITLA_CAP97_DEFAULT_OPSH;
 static uint16_t st_LGrid10 = ITLA_CAP97_DEFAULT_LGRID10;
 static int16_t  st_LGrid2_MHz = ITLA_CAP97_DEFAULT_LGRID2;
+/* §9.7 min/max lasing frequency capability registers */
+static uint16_t st_MinFreq_THz = ITLA_CAP97_DEFAULT_MINFREQ_THZ;
+static uint16_t st_MinFreq_G10 = ITLA_CAP97_DEFAULT_MINFREQ_G10;
+static uint16_t st_MaxFreq_THz = ITLA_CAP97_DEFAULT_MAXFREQ_THZ;
+static uint16_t st_MaxFreq_G10 = ITLA_CAP97_DEFAULT_MAXFREQ_G10;
+static int16_t  st_MinPower    = ITLA_CAP97_DEFAULT_MINPOWER;
+static int16_t  st_MaxPower    = ITLA_CAP97_DEFAULT_MAXPOWER;
 static uint8_t  st_caps97_loaded = 0;
 
 static void apply_caps97(const ItlaCaps97 *caps){
@@ -935,7 +950,8 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
       { uint8_t hi=ea_buf[man_idx], lo=(man_idx+1<ea_len)?ea_buf[man_idx+1]:0;
         d=(uint16_t)((hi<<8)|lo); if(st_EAC & EAC_INC_ON_READ){ man_idx+=2; st_EA=(uint16_t)man_idx; } }
       break;
-    case 0x11: case 0x12: case 0x13: goto not_impl;
+    case 0x11: case 0x12: goto not_impl;
+    case 0x13: if(isw){ xe=1; g_last_error=LERR_RNW; } else d=st_LstRsp; break;
     case 0x14:
       if(isw){
         dl_apply_config(data);
@@ -1075,13 +1091,13 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
         g_last_error = LERR_RNW;
       }
       break;
-    case 0x42: if(!isw) d= (st_OOP?st_OOP:st_PWR); else st_OOP=data; break;
-    case 0x43: if(!isw) d=(uint16_t)st_CTemp; else st_CTemp=(int16_t)data; break;
-    case 0x4F: if(!isw) d=st_FTFR_MHz; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x50: if(!isw) d=(uint16_t)st_OPSL; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x51: if(!isw) d=(uint16_t)st_OPSH; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x52: if(!isw) d=lfl1_thz(); else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x53: if(!isw) d=lfl2_g10(); else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x42: if(!isw) d=st_MinFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break; /* LF1Min – min lasing freq THz */
+    case 0x43: if(!isw) d=st_MaxFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break; /* LF1Max – max lasing freq THz */
+    case 0x4F: if(!isw) d=st_FTFR_MHz;    else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x50: if(!isw) d=st_MinFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x51: if(!isw) d=st_MinFreq_G10; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x52: if(!isw) d=st_MaxFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x53: if(!isw) d=st_MaxFreq_G10; else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x54: if(!isw){ uint16_t t,g; last_freq_split(&t,&g); d=t; } else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x55: if(!isw){ uint16_t t,g; last_freq_split(&t,&g); d=g; } else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x56: if(!isw) d=st_LGrid10; else { xe=1; g_last_error=LERR_RNW; } break;
@@ -1165,7 +1181,7 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
         }
       } else d=st_WAgeTh;
       break;
-    case 0x61: if(!isw) d=st_Age; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x61: if(!isw) d=(uint16_t)(int16_t)(-12500); else { xe=1; g_last_error=LERR_RNW; } break; /* FTFMin -12500 MHz */
       /* ChannelH (high word of Laser_Channel) – 0x65 */
     case 0x65:
       if (isw) {
@@ -1670,6 +1686,7 @@ ITLA_API uint32_t itla_handle_frame(uint32_t in_frame,
   uint8_t xe_bit=(resp.status==STAT_XE)?1:0;
   uint32_t out_frame = build_outbound_frame_spec(resp.ce,xe_bit,resp.reg,resp.data);
   if(out_ce)*out_ce=resp.ce; if(out_status)*out_status=resp.status; if(out_reg)*out_reg=resp.reg; if(out_data)*out_data=resp.data;
+  if(in_parsed.reg != 0x13) st_LstRsp = resp.data;  /* capture last response, skip when reading LstRsp itself */
   return out_frame;
 }
 
@@ -1677,6 +1694,24 @@ ITLA_API uint32_t itla_process_frame(uint32_t in_frame,
   uint8_t *out_ce,uint8_t *out_status,uint8_t *out_reg,uint16_t *out_data)
 {
   return itla_handle_frame(in_frame,out_ce,out_status,out_reg,out_data);
+}
+
+/* Feed real hardware measurements into ITLA telemetry state.
+ * Call from main.c after every ADC sample cycle.
+ *   ctemp_c100  : die temperature in degC x100  (e.g. 23.4 degC -> 2340)
+ *   tec_ma10    : TEC current in mA x10          (e.g. 1.2 A    ->   12)
+ *   oop_mv      : optical output power from MPD ADC in mV
+ *   case_c100   : case/PCB temperature in degC x100
+ */
+ITLA_API void itla_update_hw_telemetry(int16_t ctemp_c100,
+                                        int16_t tec_ma10,
+                                        uint16_t oop_mv,
+                                        int16_t case_c100)
+{
+  st_CTemp   = ctemp_c100;
+  st_TEC_raw = tec_ma10;
+  st_OOP     = oop_mv;
+  (void)case_c100;  /* reserved for future case-temp use in prep_temps_aea */
 }
 
 #ifdef __cplusplus
