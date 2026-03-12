@@ -204,7 +204,14 @@ static uint16_t st_FCF1_THz = 193;
 static int16_t  st_FCF2_G10 = 4500;   /* 450.0 GHz * 10 */
 static int16_t  st_FCF3_MHz = 0;
 /* Capabilities */
-static uint16_t st_FTFR_MHz=5000; static int16_t st_OPSL=0, st_OPSH=2000; static uint16_t st_LGrid10=250;
+/* §9.7 Capability registers — C-band 50 GHz grid, 101 channels (191.700–196.700 THz) */
+static uint16_t st_MinFreq_THz = 191;   /* 0x4F MinFreq THz part              */
+static int16_t  st_MinFreq_G10 = 7000;  /* 0x50 MinFreq GHz×10 (191.700 THz)  */
+static uint16_t st_MaxFreq_THz = 196;   /* 0x51 MaxFreq THz part              */
+static int16_t  st_MaxFreq_G10 = 7000;  /* 0x52 MaxFreq GHz×10 (196.700 THz)  */
+static int16_t  st_MinPower    = 0;     /* 0x53 MinPower dBm×100 (0.00 dBm)   */
+static int16_t  st_MaxPower    = 1300;  /* 0x69 MaxPower dBm×100 (13.00 dBm)  */
+static uint16_t st_LGrid10     = 500;   /* 0x56 LGrid10 GHz×10 (50.0 GHz)     */
 static int16_t st_FTF_MHz = 0;   /* Fine Tune Frequency (signed), units: MHz (±12.5 GHz => ±12500 MHz) */
 
 #define CAP_NUM_CHANNELS LUT_NUM_CHANNELS_50GHZ
@@ -319,7 +326,7 @@ static uint16_t lfl2_g10(void){ return st_FCF2_G10; }
  *   0x54 : THz
  *   0x55 : GHz×10
  * ------------------------------------------------------------------ */
-static void last_freq_split(uint16_t *t, uint16_t *g)
+static void last_freq_split(uint16_t *t, uint16_t *g, uint16_t *mhz)
 {
     /* LASTF is the frequency at the last supported channel.
      * For this emulator/LUT, that is CAP_NUM_CHANNELS (1..N).
@@ -341,12 +348,11 @@ static void last_freq_split(uint16_t *t, uint16_t *g)
     st_CHANNEL  = save_ch;
     st_CHANNELH = save_chh;
 
-    /* Split LASTF into THz + GHz×10 */
-    if (t) *t = (uint16_t)(last_gx1e4 / (1000u * 10000u));
-    if (g) {
-        uint32_t rem = last_gx1e4 % (1000u * 10000u);
-        *g = (uint16_t)(rem / 1000u);
-    }
+    /* Split LASTF into THz + GHz×10 + MHz */
+    uint32_t rem = last_gx1e4 % (1000u * 10000u);
+    if (t)   *t   = (uint16_t)(last_gx1e4 / (1000u * 10000u));
+    if (g)   *g   = (uint16_t)(rem / 1000u);
+    if (mhz) *mhz = (uint16_t)((rem % 1000u) / 10u);
 }
 
 
@@ -476,15 +482,22 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
         g_last_error = LERR_RNW;
       }
       break;
+    /* 0x69 MaxPower — maximum output power (read-only, dBm×100) */
+    case 0x69: if(!isw) d=(uint16_t)st_MaxPower; else { xe=1; g_last_error=LERR_RNW; } break;
+    /* 0x6A LastF_MHz — MHz fractional part of last set frequency (read-only) */
+    case 0x6A: if(!isw){ uint16_t t,g,m; last_freq_split(&t,&g,&m); d=m; } else { xe=1; g_last_error=LERR_RNW; } break;
+    /* 0x6B LGrid2 — fine grid part in MHz (read-only) */
+    case 0x6B: if(!isw) d=(uint16_t)st_GRID2; else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x42: if(!isw) d= (st_OOP?st_OOP:st_PWR); else st_OOP=data; break;
     case 0x43: if(!isw) d=(uint16_t)st_CTemp; else st_CTemp=(int16_t)data; break;
-    case 0x4F: if(!isw) d=st_FTFR_MHz; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x50: if(!isw) d=(uint16_t)st_OPSL; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x51: if(!isw) d=(uint16_t)st_OPSH; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x52: if(!isw) d=lfl1_thz(); else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x53: if(!isw) d=lfl2_g10(); else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x54: if(!isw){ uint16_t t,g; last_freq_split(&t,&g); d=t; } else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x55: if(!isw){ uint16_t t,g; last_freq_split(&t,&g); d=g; } else { xe=1; g_last_error=LERR_RNW; } break;
+    /* §9.7 Frequency limits and power range (all read-only capability registers) */
+    case 0x4F: if(!isw) d=(uint16_t)st_MinFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x50: if(!isw) d=(uint16_t)st_MinFreq_G10; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x51: if(!isw) d=(uint16_t)st_MaxFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x52: if(!isw) d=(uint16_t)st_MaxFreq_G10; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x53: if(!isw) d=(uint16_t)st_MinPower;    else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x54: if(!isw){ uint16_t t,g; last_freq_split(&t,&g,NULL); d=t; } else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x55: if(!isw){ uint16_t t,g; last_freq_split(&t,&g,NULL); d=g; } else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x56: if(!isw) d=st_LGrid10; else { xe=1; g_last_error=LERR_RNW; } break;
       /* ChannelH (high word of Laser_Channel) – 0x65 */
     case 0x65:
@@ -512,6 +525,9 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
         d = (uint16_t)st_FCF3_MHz;
       }
       break;
+
+    /* 0x61 FTFMin — lower limit of fine tune range (read-only, MHz signed) */
+    case 0x61: if(!isw) d=(uint16_t)(int16_t)(-12500); else { xe=1; g_last_error=LERR_RNW; } break;
 
     /* ------------------------------------------------------------------
      * 0x62 — Fine Tune Frequency (FTF)
