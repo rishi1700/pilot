@@ -172,6 +172,14 @@ static int16_t  st_GRID2     = 0;      /* fine grid part in MHz, signed (new: 0x
 static uint16_t st_GenCfg=0, st_AEA_EAC=0, st_AEA_EA=0, st_IOCap=0, st_EAC=0, st_EA=0, st_DLConfig=0, st_DLStatus=0;
 /* Thresholds & masks */
 static uint16_t st_FPowTh=0, st_WPowTh=0, st_FFreqTh=0, st_WFreqTh=0, st_FThermTh=0, st_WThermTh=0, st_FatalT=0, st_ALMT=0;
+static uint16_t st_FFreqTh2=0, st_WFreqTh2=0;  /* 0x63/0x64: fine freq fault/warn thresholds (MHz) */
+/* §9.8 dither and device capability registers */
+static uint16_t st_DitherPer=0;   /* 0x5A: dither period (0 = disabled)   */
+static uint16_t st_DitherBW=0;    /* 0x5B: dither bandwidth (0 = disabled) */
+static uint16_t st_DevCap=0;      /* 0x5C: device capability flags         */
+static uint16_t st_DevCap2=0;     /* 0x5D: device capability flags 2       */
+static uint16_t st_DevCap3=0;     /* 0x5E: device capability flags 3       */
+static uint16_t st_DevCap4=0;     /* 0x5F: device capability flags 4       */
 /* Optical */
 static uint16_t st_PWR=0, st_OOP=0; static int16_t st_CTemp=2500;
 static int16_t st_CaseTemp=2500;  /* 0x58[1]: case/PCB temperature C×100, default 25.00°C */
@@ -602,6 +610,22 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
         }
     }
     break;
+
+    /* §9.5 extended frequency thresholds (MHz, signed) */
+    case 0x63: if(isw){ st_FFreqTh2=data; } else d=st_FFreqTh2; break;
+    case 0x64: if(isw){ st_WFreqTh2=data; } else d=st_WFreqTh2; break;
+
+    /* §9.8 dither and device capability (all read-only stubs) */
+    case 0x5A: if(!isw) d=st_DitherPer; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x5B: if(!isw) d=st_DitherBW;  else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x5C: if(!isw) d=st_DevCap;    else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x5D: if(!isw) d=st_DevCap2;   else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x5E: if(!isw) d=st_DevCap3;   else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x5F: if(!isw) d=st_DevCap4;   else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x60: if(!isw) d=0;            else { xe=1; g_last_error=LERR_RNW; } break;  /* reserved */
+
+    /* §9.9 reserved */
+    case 0x92: if(!isw) d=0;            else { xe=1; g_last_error=LERR_RNW; } break;  /* reserved */
 
     /* ------------------------------------------------------------------
      * Manufacturer-specific LUT / PD debug window (0x80–0x88)
