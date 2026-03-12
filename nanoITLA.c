@@ -499,8 +499,9 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
     case 0x6A: if(!isw){ uint16_t t,g,m; last_freq_split(&t,&g,&m); d=m; } else { xe=1; g_last_error=LERR_RNW; } break;
     /* 0x6B LGrid2 — fine grid part in MHz (read-only) */
     case 0x6B: if(!isw) d=(uint16_t)st_GRID2; else { xe=1; g_last_error=LERR_RNW; } break;
-    case 0x42: if(!isw) d= (st_OOP?st_OOP:st_PWR); else st_OOP=data; break;
-    case 0x43: if(!isw) d=(uint16_t)st_CTemp; else st_CTemp=(int16_t)data; break;
+    /* §9.6 LF1Min/LF1Max — read-only min/max lasing frequency (THz part) */
+    case 0x42: if(!isw) d=st_MinFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
+    case 0x43: if(!isw) d=st_MaxFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
     /* §9.7 Frequency limits and power range (all read-only capability registers) */
     case 0x4F: if(!isw) d=(uint16_t)st_MinFreq_THz; else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x50: if(!isw) d=(uint16_t)st_MinFreq_G10; else { xe=1; g_last_error=LERR_RNW; } break;
