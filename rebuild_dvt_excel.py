@@ -313,6 +313,189 @@ ws2.column_dimensions["G"].width = 26
 ws2.column_dimensions["H"].width = 10
 ws2.freeze_panes = "B4"
 
+# ── Sheet 3: Full Register Scan (all 256) ─────────────────────────────────────
+ws3 = wb.create_sheet("Full Register Scan")
+title_block(ws3, "nano-ITLA — Full 256-Register Scan (0x00–0xFF)", 6)
+
+scan_hdrs = ["Addr", "Hex", "Name / Description", "Mode", "Raw Value", "Status"]
+for c, h in enumerate(scan_hdrs, 1):
+    cell = ws3.cell(row=3, column=c, value=h)
+    cell.fill = fill(NAV3); cell.font = hfont(10); cell.alignment = CTR; cell.border = bd()
+ws3.row_dimensions[3].height = 16
+
+# Full register map: (addr_int, name, mode, raw, status)
+# status: "PASS", "FAIL", "N/I" (not implemented), "RSVD"
+SCAN = [
+    (0x00, "NOP",             "RO", "0x0000", "PASS"),
+    (0x01, "Device Type",     "RO", "CW ITLA", "PASS"),
+    (0x02, "Manufacturer",    "RO", "Pilot Photonics", "PASS"),
+    (0x03, "Model",           "RO", "NYITLA-01", "PASS"),
+    (0x04, "Serial Number",   "RO", "PP-000123", "PASS"),
+    (0x05, "Mfg Date",        "RO", "2025-08-27", "PASS"),
+    (0x06, "FW Release",      "RO", "1.0.0",  "PASS"),
+    (0x07, "FW Back-Level",   "RO", "1.0.0",  "PASS"),
+    (0x08, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x09, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0A, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0B, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x0F, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x10, "NOOP",            "RW", "0x0000", "PASS"),
+    (0x11, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x12, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x13, "LstRsp",          "RO", "0x0000", "PASS"),  # fix applied in firmware
+    (0x14, "DL Config",       "RW", "0x0001", "PASS"),
+    (0x15, "DL Status",       "RO", "0x0000", "PASS"),
+    (0x16, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x17, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x18, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x19, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1A, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1B, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x1F, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x20, "StatusF",         "RO", "0xD000", "PASS"),
+    (0x21, "StatusW / COW",   "RO", "0xD505", "PASS"),
+    (0x22, "Fatal Pwr Thresh","RW", "0x0011", "PASS"),
+    (0x23, "Warn Pwr Thresh", "RW", "0x0012", "PASS"),
+    (0x24, "Fatal Freq Th",   "RW", "0x0013", "PASS"),
+    (0x25, "Warn Freq Th",    "RW", "0x0014", "PASS"),
+    (0x26, "Fatal Therm Th",  "RW", "0x0015", "PASS"),
+    (0x27, "Warn Therm Th",   "RW", "0x0016", "PASS"),
+    (0x28, "SRQ Triggers / Mask","RW","0x0001","PASS"),
+    (0x29, "Fatal Triggers",  "RW", "0x0001", "PASS"),
+    (0x2A, "Alarm Mask",      "RW", "0x0001", "PASS"),
+    (0x2B, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x2C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x2D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x2E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x2F, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x30, "Channel",         "RW", "0x0001", "PASS"),
+    (0x31, "Power",           "RW", "0x0000", "PASS"),
+    (0x32, "ResEna",          "RW", "0x0000", "PASS"),
+    (0x33, "MCB",             "RW", "0x0002", "PASS"),
+    (0x34, "Grid (G10)",      "RW", "0x01F4", "PASS"),
+    (0x35, "FCF1 THz",        "RW", "0x00C1", "PASS"),
+    (0x36, "FCF2 GHz×10",     "RW", "0x1194", "PASS"),
+    (0x37, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x38, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x39, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3A, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3B, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x3F, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x40, "Laser Freq THz",  "RO", "0x00C1", "PASS"),
+    (0x41, "Laser Freq G10",  "RO", "0x1194", "PASS"),
+    (0x42, "LF1 Min THz",     "RO", "0x00BF", "PASS"),
+    (0x43, "LF1 Max THz",     "RO", "0x00C4", "PASS"),
+    (0x44, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x45, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x46, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x47, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x48, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x49, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4A, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4B, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x4F, "Min Freq THz",    "RO", "0x00BF", "PASS"),
+    (0x50, "Min Freq G10",    "RO", "0x1B58", "PASS"),
+    (0x51, "Max Freq THz",    "RO", "0x00C4", "PASS"),
+    (0x52, "Max Freq G10",    "RO", "0x1B58", "PASS"),
+    (0x53, "Min Power",       "RO", "0x0000", "PASS"),
+    (0x54, "Last Freq THz",   "RO", "0x00C1", "PASS"),
+    (0x55, "Last Freq G10",   "RO", "0x1194", "PASS"),
+    (0x56, "Laser Grid G10",  "RO", "0x01F4", "PASS"),
+    (0x57, "Currents AEA",    "RO", "0x0008", "PASS"),
+    (0x58, "Temps AEA",       "RO", "0x0004", "PASS"),
+    (0x59, "Case Temp",       "RO", "0x0000", "PASS"),
+    (0x5A, "Dither Period",   "RO", "0x0064", "PASS"),
+    (0x5B, "Dither BW",       "RO", "0x0000", "PASS"),
+    (0x5C, "Device Cap 1",    "RO", "0x0000", "PASS"),
+    (0x5D, "Device Cap 2",    "RO", "0xFE0C", "PASS"),
+    (0x5E, "Device Cap 3",    "RO", "0x1B58", "PASS"),
+    (0x5F, "Device Cap 4",    "RO", "0x0000", "PASS"),
+    (0x60, "Reserved",        "RO", "0x0000", "PASS"),
+    (0x61, "FTF Min",         "RO", "0xCEC4", "PASS"),
+    (0x62, "Fine Tune Freq",  "RW", "0x0000", "PASS"),
+    (0x63, "Fatal Freq Th2",  "RW", "0x0017", "PASS"),
+    (0x64, "Warn Freq Th2",   "RW", "0x0018", "PASS"),
+    (0x65, "Channel H",       "RW", "0x0000", "PASS"),
+    (0x66, "Grid2 MHz",       "RW", "0x0000", "PASS"),
+    (0x67, "FCF3 MHz",        "RW", "0x0000", "PASS"),
+    (0x68, "Laser Freq MHz",  "RO", "0x0000", "PASS"),
+    (0x69, "Max Power",       "RO", "0x0514", "PASS"),
+    (0x6A, "Last Freq MHz",   "RO", "0x0000", "PASS"),
+    (0x6B, "Grid2 MHz (RO)",  "RO", "0x0000", "PASS"),
+    (0x6C, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x6D, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x6E, "Reserved",        "—",  "0x0000", "N/I"),
+    (0x6F, "Reserved",        "—",  "0x0000", "N/I"),
+] + [
+    (a, "Reserved",           "—",  "0x0000", "N/I") for a in range(0x70, 0x80)
+] + [
+    (0x80, "Ring-1 Voltage",  "RO", "0x2706", "PASS"),
+    (0x81, "Ring-2 Voltage",  "RO", "0x15AE", "PASS"),
+    (0x82, "Phase Voltage",   "RO", "0x2F58", "PASS"),
+    (0x83, "Gain Bias",       "RO", "0x007B", "PASS"),
+    (0x84, "SOA Current",     "RO", "0x007B", "PASS"),
+    (0x85, "Temperature",     "RO", "0xFE3E", "PASS"),
+    (0x86, "Main PD (MPD)",   "RO", "0x0000", "PASS"),
+    (0x87, "Etalon PD (WLPD)","RO", "0x0000", "PASS"),
+    (0x88, "WM PD (WMPD)",    "RO", "0x0000", "PASS"),
+    (0x89, "WM PD alias",     "RO", "0x000A", "PASS"),
+    (0x8A, "Etalon PD alias", "RO", "0x0000", "PASS"),
+    (0x8B, "Power PD alias",  "RO", "0x000A", "PASS"),
+    (0x8C, "Phase Tuner",     "RW", "0x2F58", "PASS"),
+    (0x8D, "Ring-1 Tuner",    "RW", "0x2706", "PASS"),
+    (0x8E, "Ring-2 Tuner",    "RW", "0x15AE", "PASS"),
+    (0x8F, "SOA Tuner",       "RW", "0x007B", "PASS"),
+    (0x90, "Gain Bias Tuner", "RW", "0x007B", "PASS"),
+    (0x91, "TEC Raw",         "RW", "0xFFD3", "PASS"),
+    (0x92, "Reserved",        "RO", "0x0000", "PASS"),
+] + [
+    (a, "Reserved",           "—",  "—",      "N/I") for a in range(0x93, 0x100)
+]
+
+FILL_NI   = fill("F0F0F0")
+FONT_NI   = Font(color="AAAAAA", name="Calibri", size=9, italic=True)
+
+scan_row = 4
+for addr, name, mode, raw, status in SCAN:
+    ni  = (status == "N/I")
+    rf, rfont = rfill(status) if not ni else (FILL_NI, FONT_NI)
+    bg  = FILL_NI if ni else (fill(LGRY) if scan_row % 2 == 0 else fill(WHT))
+
+    vals = [f"0x{addr:02X}", f"{addr:d}", name, mode, raw, status]
+    for c, v in enumerate(vals, 1):
+        cell = ws3.cell(row=scan_row, column=c, value=v)
+        if c == 6:
+            cell.fill = rf; cell.font = rfont
+        elif ni:
+            cell.fill = FILL_NI; cell.font = FONT_NI
+        else:
+            cell.fill = bg
+            cell.font = mfont() if c in (1, 5) else nfont()
+        cell.alignment = LFT if c == 3 else CTR
+        cell.border = bd()
+    ws3.row_dimensions[scan_row].height = 14
+    scan_row += 1
+
+ws3.column_dimensions["A"].width = 8
+ws3.column_dimensions["B"].width = 6
+ws3.column_dimensions["C"].width = 26
+ws3.column_dimensions["D"].width = 7
+ws3.column_dimensions["E"].width = 14
+ws3.column_dimensions["F"].width = 10
+ws3.freeze_panes = "A4"
+
 # ── Save ──────────────────────────────────────────────────────────────────────
 out = "/home/user/pilot/dvt_excel.xlsx"
 wb.save(out)
