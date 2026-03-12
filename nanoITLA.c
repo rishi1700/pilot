@@ -155,6 +155,7 @@ static int  py_handle_register(uint8_t r,uint8_t w,uint16_t d,uint8_t *xe,uint16
 #define BUSY_BIT 0x0002
 static uint16_t st_StatusF=0, st_StatusW=0, st_SRQ_MASK=0;
 static uint16_t st_ResEna=0, st_MCB=0;
+static uint16_t st_LstRsp=0;   /* 0x13: last response data field */
 
 /* 9.6 channel / grid */
 static uint16_t st_CHANNEL   = 0;      /* low word */
@@ -386,7 +387,8 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
       { uint8_t hi=ea_buf[man_idx], lo=(man_idx+1<ea_len)?ea_buf[man_idx+1]:0;
         d=(uint16_t)((hi<<8)|lo); if(st_EAC & EAC_INC_ON_READ){ man_idx+=2; st_EA=(uint16_t)man_idx; } }
       break;
-    case 0x11: case 0x12: case 0x13: goto not_impl;
+    case 0x11: case 0x12: goto not_impl;
+    case 0x13: if(isw){ xe=1; g_last_error=LERR_RNW; } else d=st_LstRsp; break;
     case 0x14: if(isw){ st_DLConfig=data; } else d=st_DLConfig; break;
     case 0x15: if(isw){ xe=1; g_last_error=LERR_RNW; } else d=st_DLStatus; break;
     case 0x20: if(isw){ st_StatusF=data; } else d=st_StatusF; break;
@@ -823,6 +825,7 @@ static void handle_register_and_build_response(const InboundFields *in, Response
     out->status= STAT_OK;
     out->data  = data;
     g_last_error = LERR_NONE;
+    st_LstRsp = data;
     return;
   }
 
@@ -853,6 +856,7 @@ static void handle_register_and_build_response(const InboundFields *in, Response
   if((st_StatusW & BUSY_BIT) && status==STAT_OK) status=STAT_CP;
 
   out->ce=0; out->status=status; out->data=data;
+  if(in->reg != 0x13) st_LstRsp = data;  /* capture last response, but not when reading LstRsp itself */
 }
 
 /* ---------- Public API (ctypes-friendly) ---------- */
