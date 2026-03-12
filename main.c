@@ -73,6 +73,9 @@ extern uint32_t itla_handle_frame(uint32_t in_frame,
                                   uint8_t *out_status,
                                   uint8_t *out_reg,
                                   uint16_t *out_data);
+extern void itla_update_hw_telemetry(int16_t ctemp_c100,
+                                     int16_t tec_ma10,
+                                     uint16_t oop_mv);
 
 
 static void uart1_init(void) {
@@ -1399,6 +1402,17 @@ int main(void)
 								g_mpd_meas  = (float)MPD_read();   // mV
 								g_wlpd_meas = (float)WLPD_read();  // mV
 								g_wmpd_meas = (float)WMPD_read();  // mV
+
+								/* Read MCU die temp and TEC current, bridge into nanoITLA */
+								int tuc = read_parameters(16);
+								float temp_c = (float)(tuc / 5.94) - 273.15f;
+								int adcTEC = read_parameters(22);
+								float tec_A = (1.25f - ((adcTEC / 65535.0f) * 5.04f)) / 0.525f;
+								itla_update_hw_telemetry(
+									(int16_t)(temp_c * 100.0f),    /* degC x100 */
+									(int16_t)(tec_A  * 10.0f),     /* mA x10   */
+									(uint16_t)(g_mpd_meas)         /* MPD mV   */
+								);
 							}
 						UrtPrint("%f,%f,%f,%f,%f,%u, %f, %d,%f ,%d\r\n",Temp_uc_f,TECIH,TECIL, 2000.0, setpoint, adc_val, setpoint-adc_val, PWM, TECV, itla_get_direct_ctrl_mode() );
 					}

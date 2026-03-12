@@ -903,6 +903,21 @@ ITLA_API uint32_t itla_process_frame(uint32_t in_frame,
   return itla_handle_frame(in_frame,out_ce,out_status,out_reg,out_data);
 }
 
+/* Feed real hardware measurements into the ITLA telemetry state.
+ * Call this from main.c after every ADC sample cycle.
+ *   ctemp_c100 : die/TEC temperature in °C × 100  (e.g. 23.4°C → 2340)
+ *   tec_ma10   : TEC current in mA × 10            (e.g. 1.2 A  →   12)
+ *   oop_mv     : optical output power from MPD ADC in mV
+ */
+ITLA_API void itla_update_hw_telemetry(int16_t ctemp_c100,
+                                        int16_t tec_ma10,
+                                        uint16_t oop_mv)
+{
+    st_CTemp   = ctemp_c100;
+    st_TEC_raw = tec_ma10;
+    st_OOP     = oop_mv;
+}
+
 #ifdef __cplusplus
 }
 #endif
