@@ -95,7 +95,7 @@ def decode_status(val, bit_map):
 
 def thz_to_nm(thz, ghz10):
     """Convert THz + GHz×10 to wavelength in nm (c = 299792458 m/s)."""
-    freq_hz = (thz * 1e12) + (ghz10 * 1e11)
+    freq_hz = (thz * 1e12) + (ghz10 * 1e8)   # ghz10 register = GHz×10, so ×1e8 → Hz
     if freq_hz == 0:
         return 0.0
     return 299792458.0 / freq_hz * 1e9
@@ -112,7 +112,9 @@ def read_and_display(ser):
     statusf = rd(0x20)
     statusw = rd(0x21)
     dlstat  = rd(0x15)   # dither/lock status
-    channel = rd(0x10)
+    ch_hi   = rd(0x65)   # ChannelH (high word)
+    ch_lo   = rd(0x66)   # ChannelL (low word)
+    channel = ((ch_hi or 0) << 16) | (ch_lo or 0)
 
     # Manufacturer registers
     v1      = rd(0x80)   # Ring-1 raw × 100
@@ -148,7 +150,7 @@ def read_and_display(ser):
     lock_str = "\033[92mLOCKED\033[0m" if locked else "\033[91mNOT LOCKED\033[0m"
     srq_str  = "  \033[91m[SRQ]\033[0m" if srq else ""
     print(f"  Status   : {lock_str}{srq_str}")
-    print(f"  Channel  : {channel if channel is not None else '?'}")
+    print(f"  Channel  : {channel}")
     print(f"  Frequency: {lf1 or 0} THz + {(lf2 or 0)/10.0:.1f} GHz  "
           f"= {freq_thz:.4f} THz")
     print(f"  Wavelength: {wl_nm:.3f} nm" if wl_nm else "  Wavelength: ?")
