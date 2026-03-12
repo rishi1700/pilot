@@ -75,7 +75,8 @@ extern uint32_t itla_handle_frame(uint32_t in_frame,
                                   uint16_t *out_data);
 extern void itla_update_hw_telemetry(int16_t ctemp_c100,
                                      int16_t tec_ma10,
-                                     uint16_t oop_mv);
+                                     uint16_t oop_mv,
+                                     int16_t case_c100);
 
 
 static void uart1_init(void) {
@@ -1409,9 +1410,10 @@ int main(void)
 								int adcTEC = read_parameters(22);
 								float tec_A = (1.25f - ((adcTEC / 65535.0f) * 5.04f)) / 0.525f;
 								itla_update_hw_telemetry(
-									(int16_t)(temp_c * 100.0f),    /* degC x100 */
+									(int16_t)(temp_c * 100.0f),    /* degC x100 (diode) */
 									(int16_t)(tec_A  * 10.0f),     /* mA x10   */
-									(uint16_t)(g_mpd_meas)         /* MPD mV   */
+									(uint16_t)(g_mpd_meas),        /* MPD mV   */
+									(int16_t)(temp_c * 100.0f)     /* degC x100 (case=diode, same sensor) */
 								);
 							}
 						UrtPrint("%f,%f,%f,%f,%f,%u, %f, %d,%f ,%d\r\n",Temp_uc_f,TECIH,TECIL, 2000.0, setpoint, adc_val, setpoint-adc_val, PWM, TECV, itla_get_direct_ctrl_mode() );

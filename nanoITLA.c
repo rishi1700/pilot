@@ -174,6 +174,7 @@ static uint16_t st_GenCfg=0, st_AEA_EAC=0, st_AEA_EA=0, st_IOCap=0, st_EAC=0, st
 static uint16_t st_FPowTh=0, st_WPowTh=0, st_FFreqTh=0, st_WFreqTh=0, st_FThermTh=0, st_WThermTh=0, st_FatalT=0, st_ALMT=0;
 /* Optical */
 static uint16_t st_PWR=0, st_OOP=0; static int16_t st_CTemp=2500;
+static int16_t st_CaseTemp=2500;  /* 0x58[1]: case/PCB temperature C×100, default 25.00°C */
 /* ------------------------------------------------------------------
  * Manufacturer-specific R/W extensions (0x8C–0x91)
  *
@@ -226,10 +227,12 @@ static const char s_relback[]="1.0.0";
 
 /* EA buffer */
 static const uint8_t *ea_buf=NULL; static size_t ea_len=0; static size_t aea_idx=0, man_idx=0;
+static uint8_t aea_bin_buf[16];   /* scratch buffer for binary AEA payloads (0x57, 0x58) */
 #define EAC_INC_ON_READ  0x0001
 #define EAC_INC_ON_WRITE 0x0002
 
 static void ea_set(const char *s){ ea_buf=(const uint8_t*)s; ea_len=strlen(s)+1; aea_idx=man_idx=0; st_AEA_EA=st_EA=0; }
+static void ea_set_bin(const uint8_t *buf, size_t len){ ea_buf=buf; ea_len=len; aea_idx=man_idx=0; st_AEA_EA=st_EA=0; }
 static void set_busy(int on){ if(on) st_StatusW|=BUSY_BIT; else st_StatusW&=(uint16_t)~BUSY_BIT; }
 static int pending_cnt=0;
 static void tick_pending(void){ if(pending_cnt>0){ if(--pending_cnt==0) set_busy(0); } }
@@ -499,6 +502,46 @@ static int c_handle_register(uint8_t reg,uint8_t isw,uint16_t data,uint8_t *xe_o
     case 0x54: if(!isw){ uint16_t t,g; last_freq_split(&t,&g,NULL); d=t; } else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x55: if(!isw){ uint16_t t,g; last_freq_split(&t,&g,NULL); d=g; } else { xe=1; g_last_error=LERR_RNW; } break;
     case 0x56: if(!isw) d=st_LGrid10; else { xe=1; g_last_error=LERR_RNW; } break;
+
+    /* §9.8 Currents AEA: [TEC, DIODE, MON, SOA] signed int16 mA×10, big-endian
+     * Read returns byte count (8). Host then reads payload via AEA 0x0B. */
+    case 0x57:
+      if (isw) { xe=1; g_last_error=LERR_RNW; break; }
+      {
+        int16_t tec_ma10   = st_TEC_raw;
+        int16_t diode_ma10 = (int16_t)(g_gain * 10.0f);
+        int16_t mon_ma10   = (int16_t)((int16_t)st_OOP / 10);
+        int16_t soa_ma10   = (int16_t)((int16_t)st_SOA_centi / 10);
+        aea_bin_buf[0] = (uint8_t)((uint16_t)tec_ma10   >> 8);
+        aea_bin_buf[1] = (uint8_t)((uint16_t)tec_ma10   & 0xFF);
+        aea_bin_buf[2] = (uint8_t)((uint16_t)diode_ma10 >> 8);
+        aea_bin_buf[3] = (uint8_t)((uint16_t)diode_ma10 & 0xFF);
+        aea_bin_buf[4] = (uint8_t)((uint16_t)mon_ma10   >> 8);
+        aea_bin_buf[5] = (uint8_t)((uint16_t)mon_ma10   & 0xFF);
+        aea_bin_buf[6] = (uint8_t)((uint16_t)soa_ma10   >> 8);
+        aea_bin_buf[7] = (uint8_t)((uint16_t)soa_ma10   & 0xFF);
+        ea_set_bin(aea_bin_buf, 8);
+        d = 8;
+      }
+      break;
+
+    /* §9.8 Temps AEA: [DIODE, CASE] signed int16 C×100, big-endian
+     * Read returns byte count (4). Host then reads payload via AEA 0x0B. */
+    case 0x58:
+      if (isw) { xe=1; g_last_error=LERR_RNW; break; }
+      {
+        aea_bin_buf[0] = (uint8_t)((uint16_t)st_CTemp    >> 8);
+        aea_bin_buf[1] = (uint8_t)((uint16_t)st_CTemp    & 0xFF);
+        aea_bin_buf[2] = (uint8_t)((uint16_t)st_CaseTemp >> 8);
+        aea_bin_buf[3] = (uint8_t)((uint16_t)st_CaseTemp & 0xFF);
+        ea_set_bin(aea_bin_buf, 4);
+        d = 4;
+      }
+      break;
+
+    /* 0x59 CaseTemp — single-word read of case temperature (C×100) */
+    case 0x59: if(!isw) d=(uint16_t)st_CaseTemp; else { xe=1; g_last_error=LERR_RNW; } break;
+
       /* ChannelH (high word of Laser_Channel) – 0x65 */
     case 0x65:
       if (isw) {
@@ -931,11 +974,13 @@ ITLA_API uint32_t itla_process_frame(uint32_t in_frame,
  */
 ITLA_API void itla_update_hw_telemetry(int16_t ctemp_c100,
                                         int16_t tec_ma10,
-                                        uint16_t oop_mv)
+                                        uint16_t oop_mv,
+                                        int16_t case_c100)
 {
-    st_CTemp   = ctemp_c100;
-    st_TEC_raw = tec_ma10;
-    st_OOP     = oop_mv;
+    st_CTemp    = ctemp_c100;
+    st_TEC_raw  = tec_ma10;
+    st_OOP      = oop_mv;
+    st_CaseTemp = case_c100;
 }
 
 #ifdef __cplusplus
