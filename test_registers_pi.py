@@ -25,6 +25,18 @@ import argparse
 import sys
 
 # ---------------------------------------------------------------------------
+# LUT coverage — channels whose LUT row is all-zeros (no valid operating point
+# found during calibration).  Per team: auto-mark these as FAIL, skip hardware.
+# Source: nano_lut_50ghz.c  (101-channel 50 GHz LUT for the current device)
+# ---------------------------------------------------------------------------
+LUT_ZERO_CHANNELS = {
+    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+    21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
+    41,42,43,44,45,46,47,48,49,50,51,52,
+    54, 56, 57, 78, 84,
+}
+
+# ---------------------------------------------------------------------------
 # ITLA frame helpers (mirrors nanoITLA.c build_inbound_frame logic)
 # ---------------------------------------------------------------------------
 
@@ -344,10 +356,109 @@ def run_tests(spi, verbose=False, full=False):
 
 
 # ---------------------------------------------------------------------------
+# Channel sweep test
+# ---------------------------------------------------------------------------
+
+def run_channel_sweep(ser, verbose=False):
+    """
+    Walk all 101 LUT channels (50 GHz grid).
+
+    Zero-LUT channels: auto-FAIL without touching hardware — no valid operating
+    point was found during calibration (per team instruction).
+
+    Non-zero channels: write channel to 0x65/0x66, read back LUT-setpoint
+    registers 0x80-0x84 and verify at least one drive is non-zero.
+
+    Returns (results, all_pass) where results is a list of 8-tuples:
+      (ch, lut_ok, v1, v2, v3, gain, soa, overall, notes)
+    """
+    NUM_CHANNELS = 101
+    CH_COL_WIDTHS = (4, 8, 8, 8, 8, 8, 8, 40)
+    CH_HEADER     = ("Ch", "V1_lut", "V2_lut", "V3_lut", "Gain_lut", "SOA_lut", "Result", "Notes")
+
+    print()
+    print("=" * 95)
+    print("  nano-ITLA Channel Sweep Test  —  101 channels × 50 GHz")
+    print("=" * 95)
+    print("  \u25ba  Channels with all-zero LUT rows are auto-marked FAIL (no valid operating point)")
+    print("-" * 95)
+    print("  " + "  ".join(str(h).ljust(w) for h, w in zip(CH_HEADER, CH_COL_WIDTHS)))
+    print("-" * 95)
+
+    results = []
+    n_pass = n_fail = n_zero = 0
+
+    for ch in range(1, NUM_CHANNELS + 1):
+        v1_s = v2_s = v3_s = gain_s = soa_s = "—"
+        notes = ""
+
+        if ch in LUT_ZERO_CHANNELS:
+            # Auto-fail: zero LUT row
+            overall = FAIL
+            notes   = "LUT row all-zeros: no valid operating point"
+            n_fail += 1
+            n_zero += 1
+        else:
+            try:
+                # Write channel number into ChannelH (0x65=0) and ChannelL (0x66=ch)
+                spi_write(ser, 0x65, 0)
+                spi_write(ser, 0x66, ch)
+                time.sleep(0.02)   # 20 ms — let firmware apply LUT in main loop
+
+                # Read LUT setpoint mirrors
+                def _rd(reg):
+                    ce, xe, _, val = spi_read(ser, reg)
+                    if ce: return "CE-ERR"
+                    if xe: return "XE"
+                    return val
+
+                v1   = _rd(0x80)
+                v2   = _rd(0x81)
+                v3   = _rd(0x82)
+                gain = _rd(0x83)
+                soa  = _rd(0x84)
+
+                v1_s   = f"0x{v1:04X}"   if isinstance(v1,   int) else v1
+                v2_s   = f"0x{v2:04X}"   if isinstance(v2,   int) else v2
+                v3_s   = f"0x{v3:04X}"   if isinstance(v3,   int) else v3
+                gain_s = f"0x{gain:04X}" if isinstance(gain, int) else gain
+                soa_s  = f"0x{soa:04X}"  if isinstance(soa,  int) else soa
+
+                # PASS if at least one of v1/v2/v3/gain/soa is non-zero
+                numeric = [x for x in (v1, v2, v3, gain, soa) if isinstance(x, int)]
+                if any(x != 0 for x in numeric):
+                    overall = PASS
+                    n_pass += 1
+                else:
+                    overall = FAIL
+                    notes   = "all drive registers read zero after channel select"
+                    n_fail += 1
+
+            except Exception as ex:
+                overall = FAIL
+                notes   = str(ex)
+                n_fail += 1
+
+        row_fields = (str(ch), v1_s, v2_s, v3_s, gain_s, soa_s, overall, notes[:CH_COL_WIDTHS[-1]])
+        print("  " + "  ".join(str(f).ljust(w) for f, w in zip(row_fields, CH_COL_WIDTHS)))
+        results.append((ch, v1_s, v2_s, v3_s, gain_s, soa_s, overall, notes))
+
+        if verbose and notes:
+            print(f"      note: {notes}")
+
+    print("-" * 95)
+    print(f"  TOTAL: {NUM_CHANNELS}   PASS: {n_pass}   FAIL: {n_fail}  "
+          f"  (of which {n_zero} auto-fail: zero LUT rows)")
+    print("=" * 95)
+    print()
+    return results, n_fail == 0
+
+
+# ---------------------------------------------------------------------------
 # Excel export
 # ---------------------------------------------------------------------------
 
-def save_excel(results, port, out_path):
+def save_excel(results, port, out_path, channel_results=None):
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -446,6 +557,58 @@ def save_excel(results, port, out_path):
         ws.column_dimensions[col].width = w
     ws.freeze_panes = "A4"
 
+    # ── Channel Sweep sheet (optional) ───────────────────────────────────────
+    if channel_results:
+        cs = wb.create_sheet("Channel Sweep")
+
+        cs.merge_cells("A1:I1")
+        t2 = cs["A1"]
+        t2.value = "nano-ITLA  Channel Sweep  —  101 channels × 50 GHz"
+        t2.font  = Font(name="Calibri", size=13, bold=True, color="FFFFFF")
+        t2.fill  = _fill(C_HDR); t2.alignment = CTR
+        cs.row_dimensions[1].height = 22
+
+        cs.merge_cells("A2:I2")
+        sub2 = cs["A2"]
+        n_pass_ch = sum(1 for *_, s, _ in channel_results if s == PASS)
+        n_fail_ch = sum(1 for *_, s, _ in channel_results if s == FAIL)
+        n_zero_ch = sum(1 for *_, s, note in channel_results if s == FAIL and "all-zeros" in note)
+        sub2.value = (f"Date: {__import__('datetime').datetime.now().strftime('%Y-%m-%d  %H:%M')}    "
+                      f"Total: {len(channel_results)}    PASS: {n_pass_ch}    FAIL: {n_fail_ch}"
+                      f"  (of which {n_zero_ch} auto-fail: zero LUT rows)")
+        sub2.font  = Font(name="Calibri", size=9, italic=True, color="FFFFFF")
+        sub2.fill  = _fill("2E4057"); sub2.alignment = CTR
+        cs.row_dimensions[2].height = 14
+
+        ch_headers = ["Ch", "LUT", "V1_lut", "V2_lut", "V3_lut", "Gain_lut", "SOA_lut", "Result", "Notes"]
+        for c, h in enumerate(ch_headers, 1):
+            cell = cs.cell(row=3, column=c, value=h)
+            cell.font = _font(bold=True, color=C_HDR_F); cell.fill = _fill(C_HDR)
+            cell.alignment = CTR; cell.border = _bd()
+        cs.row_dimensions[3].height = 16
+
+        for r_idx, (ch, v1, v2, v3, gain, soa, overall, notes) in enumerate(channel_results, 4):
+            lut_tag  = "ZERO" if ch in LUT_ZERO_CHANNELS else "OK"
+            bg = _fill(C_ROW1 if r_idx % 2 == 0 else C_ROW2)
+            row_vals = [str(ch), lut_tag, v1, v2, v3, gain, soa, overall, notes]
+            for c, v in enumerate(row_vals, 1):
+                cell = cs.cell(row=r_idx, column=c, value=v)
+                cell.border = _bd()
+                cell.alignment = LFT if c == 9 else CTR
+                if c == 8 and overall in STATUS_STYLE:
+                    fill_, font_ = STATUS_STYLE[overall]
+                    cell.fill = fill_; cell.font = font_
+                elif c == 2 and lut_tag == "ZERO":
+                    cell.fill = _fill(C_NI)
+                    cell.font = Font(name="Calibri", size=9, italic=True, color=C_NI_F)
+                else:
+                    cell.fill = bg; cell.font = _font(sz=9)
+            cs.row_dimensions[r_idx].height = 13
+
+        for col, w in zip("ABCDEFGHI", [5, 6, 10, 10, 10, 10, 10, 8, 46]):
+            cs.column_dimensions[col].width = w
+        cs.freeze_panes = "A4"
+
     wb.save(out_path)
     print(f"Excel saved: {out_path}")
 
@@ -460,8 +623,9 @@ def main():
     parser.add_argument("--baud",    type=int, default=115200, help="Baud rate (default 115200)")
     parser.add_argument("--timeout", type=float, default=0.5,  help="Read timeout seconds (default 0.5)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print extra detail on failures")
-    parser.add_argument("--full",  action="store_true", help="Scan all 256 registers (marks unimplemented as N/I)")
-    parser.add_argument("--excel", metavar="FILE",      help="Save results to Excel .xlsx (e.g. --excel report.xlsx)")
+    parser.add_argument("--full",     action="store_true", help="Scan all 256 registers (marks unimplemented as N/I)")
+    parser.add_argument("--channels", action="store_true", help="Run 101-channel LUT sweep (auto-fails zero-LUT rows)")
+    parser.add_argument("--excel",    metavar="FILE",      help="Save results to Excel .xlsx (e.g. --excel report.xlsx)")
     args = parser.parse_args()
 
     import time
@@ -471,13 +635,17 @@ def main():
 
     print(f"UART {args.port}  baud={args.baud}  timeout={args.timeout}s")
 
+    channel_results = None
     try:
         results, ok = run_tests(ser, verbose=args.verbose, full=args.full)
+        if args.channels:
+            channel_results, ch_ok = run_channel_sweep(ser, verbose=args.verbose)
+            ok = ok and ch_ok
     finally:
         ser.close()
 
     if args.excel:
-        save_excel(results, args.port, args.excel)
+        save_excel(results, args.port, args.excel, channel_results=channel_results)
 
     sys.exit(0 if ok else 1)
 
