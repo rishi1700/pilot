@@ -85,6 +85,7 @@ def _signed16(raw):
 
 def decode_thz(raw):      return f"{raw}", "THz"
 def decode_ghz10(raw):    return f"{raw / 10.0:.1f}", "GHz"
+def decode_mhz(raw):      return f"{raw}", "MHz"
 def decode_centi_v(raw):  return f"{raw / 100.0:.2f}", "V"
 def decode_temp_x10(raw): return f"{_signed16(raw) / 10.0:.1f}", "°C"
 def decode_casetemp(raw): return f"{_signed16(raw) / 100.0:.2f}", "°C"
@@ -92,16 +93,22 @@ def decode_pd_x10(raw):   return f"{raw / 10.0:.1f}", "ADC"
 
 LIVE_REGISTERS = [
     # ── Laser frequency ──────────────────────────────────────────────────────
-    (0x40, "LF1",          "Laser freq – THz part",           decode_thz),
-    (0x41, "LF2",          "Laser freq – GHz×10 part",        decode_ghz10),
-    # ── Freq limits ──────────────────────────────────────────────────────────
-    (0x42, "MinFreq_THz",  "Min lasing freq – THz",           decode_thz),
-    (0x43, "MaxFreq_THz",  "Max lasing freq – THz",           decode_thz),
-    (0x4F, "MinFreq_G10",  "Min lasing freq – GHz×10",        decode_ghz10),
-    (0x51, "MaxFreq_THz2", "Max lasing freq – THz (dup)",     decode_thz),
-    (0x52, "MaxFreq_G10",  "Max lasing freq – GHz×10",        decode_ghz10),
-    (0x54, "LastFreq_THz", "Last channel freq – THz",         decode_thz),
-    (0x55, "LastFreq_G10", "Last channel freq – GHz×10",      decode_ghz10),
+    (0x40, "LF1",          "Laser freq – THz part",                decode_thz),
+    (0x41, "LF2",          "Laser freq – GHz×10 part",             decode_ghz10),
+    # ── Freq limits (per nanoITLA.c §9.7 register map) ───────────────────────
+    # 0x42 LF1Min THz  / 0x43 LF1Max THz  (Table A, fixed at compile-time)
+    (0x42, "LF1Min_THz",   "Min lasing freq – THz  (Table A)",     decode_thz),
+    (0x43, "LF1Max_THz",   "Max lasing freq – THz  (Table A)",     decode_thz),
+    # 0x4F FTFR (Fine Tune Freq Range in MHz)
+    (0x4F, "FTFR",         "Fine tune freq range",                 decode_mhz),
+    # 0x50/0x51 MinFreq THz + GHz×10  / 0x52/0x53 MaxFreq THz + GHz×10
+    (0x50, "MinFreq_THz",  "Min lasing freq – THz  (cap97)",       decode_thz),
+    (0x51, "MinFreq_G10",  "Min lasing freq – GHz×10 (cap97)",     decode_ghz10),
+    (0x52, "MaxFreq_THz",  "Max lasing freq – THz  (cap97)",       decode_thz),
+    (0x53, "MaxFreq_G10",  "Max lasing freq – GHz×10 (cap97)",     decode_ghz10),
+    # 0x54/0x55 Last channel freq
+    (0x54, "LastFreq_THz", "Last channel freq – THz",              decode_thz),
+    (0x55, "LastFreq_G10", "Last channel freq – GHz×10",           decode_ghz10),
     # ── Temperature ──────────────────────────────────────────────────────────
     (0x59, "CaseTemp",     "Case/PCB temperature",            decode_casetemp),
     # ── Manufacturer: DAC read-backs ─────────────────────────────────────────

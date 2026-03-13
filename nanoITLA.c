@@ -248,8 +248,8 @@ static int16_t  st_TEC_raw    = 0;         /* 0x91 */
  *   FCF2 (0x36) = GHz * 10  (0.1 GHz steps)
  *   FCF3 (0x67) = MHz (fine part)
  */
-static uint16_t st_FCF1_THz = 193;
-static int16_t  st_FCF2_G10 = 4500;   /* 450.0 GHz * 10 */
+static uint16_t st_FCF1_THz = 191;
+static int16_t  st_FCF2_G10 = 5000;   /* 500.0 GHz×10 → FCF = 191.500 THz (ITU C-band ch1) */
 static int16_t  st_FCF3_MHz = 0;
 /* 9.7 Module capabilities (backend-wired, with safe defaults). */
 typedef struct {
