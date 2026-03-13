@@ -181,7 +181,7 @@ REGISTERS = [
     (0x59, "DitherCtrl",      "RO",   None,     "Dither waveform/enable control"),
     (0x62, "FTF",             "RW",   0x0000,   "Fine tune frequency (MHz, signed)"),
     (0x65, "ChannelH",        "RW",   0x0000,   "Laser channel (high word)"),
-    (0x66, "ChannelL",        "RW",   0x0001,   "Laser channel (low word, alias)"),
+    (0x66, "ChannelL",        "RW",   0x003C,   "Laser channel – ch60 (first populated LUT row with real cal data)"),
     (0x67, "FCF3_MHz",        "RW",   0x0000,   "First channel freq – MHz part"),
     (0x68, "Grid2_MHz",       "RO",   None,     "Grid 2 – MHz offset (read-only in test)"),
     # ── Manufacturer-specific LUT / PD window (0x80–0x8B) ──────────────────
