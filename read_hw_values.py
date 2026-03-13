@@ -109,22 +109,22 @@ LIVE_REGISTERS = [
     # 0x54/0x55 Last channel freq
     (0x54, "LastFreq_THz", "Last channel freq – THz",              decode_thz),
     (0x55, "LastFreq_G10", "Last channel freq – GHz×10",           decode_ghz10),
-    # ── Temperature ──────────────────────────────────────────────────────────
-    (0x59, "CaseTemp",     "Case/PCB temperature",            decode_casetemp),
-    # ── Manufacturer: DAC read-backs ─────────────────────────────────────────
-    (0x80, "V1_rdac",      "Ring-1 voltage read-back",        decode_centi_v),
-    (0x81, "V2_rdac",      "Ring-2 voltage read-back",        decode_centi_v),
-    (0x82, "V3_rdac",      "Phase voltage read-back",         decode_centi_v),
-    (0x83, "Gain_rdac",    "Gain bias read-back",             decode_centi_v),
-    (0x84, "SOA_rdac",     "SOA current read-back",           decode_centi_v),
-    (0x85, "Temp_rdac",    "Temperature ADC read-back",       decode_temp_x10),
-    # ── Manufacturer: Photodetectors ─────────────────────────────────────────
-    (0x86, "MPD",          "Main power detector (g_mpd)",     decode_pd_x10),
-    (0x87, "WLPD",         "Etalon PD / wavelength lock",     decode_pd_x10),
-    (0x88, "WMPD",         "Wavelength monitor PD",           decode_pd_x10),
-    (0x89, "WMPD_meas",    "WMPD measured (alias)",           decode_pd_x10),
-    (0x8A, "WLPD_meas",    "WLPD measured (alias)",           decode_pd_x10),
-    (0x8B, "MPD_meas",     "MPD measured (alias)",            decode_pd_x10),
+    # ── Dither control (MSA §9.8.3) — NOT a temperature register ────────────
+    (0x59, "DitherCtrl",   "Dither waveform/enable control",  decode_thz),
+    # ── Manufacturer: LUT setpoints (0=empty LUT, not hardware fault) ────────
+    (0x80, "V1_lut",       "Ring-1 V  – LUT setpoint",        decode_centi_v),
+    (0x81, "V2_lut",       "Ring-2 V  – LUT setpoint",        decode_centi_v),
+    (0x82, "V3_lut",       "Phase  V  – LUT setpoint",        decode_centi_v),
+    (0x83, "Gain_lut",     "Gain bias – LUT setpoint",        decode_centi_v),
+    (0x84, "SOA_lut",      "SOA curr  – LUT setpoint",        decode_centi_v),
+    (0x85, "Temp_lut",     "TEC temp  – LUT setpoint",        decode_temp_x10),
+    (0x86, "MPD_lut",      "Main PD   – LUT setpoint",        decode_pd_x10),
+    (0x87, "WLPD_lut",     "Etalon PD – LUT setpoint",        decode_pd_x10),
+    (0x88, "WMPD_lut",     "WM PD     – LUT setpoint",        decode_pd_x10),
+    # ── Manufacturer: Live ADC readings (real hardware) ──────────────────────
+    (0x89, "WMPD_adc",     "WM PD     – live ADC (mV)",       decode_pd_x10),
+    (0x8A, "WLPD_adc",     "Etalon PD – live ADC (mV)",       decode_pd_x10),
+    (0x8B, "MPD_adc",      "Main PD   – live ADC (mV)",       decode_pd_x10),
 ]
 
 
