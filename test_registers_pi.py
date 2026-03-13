@@ -194,6 +194,18 @@ REGISTERS = [
     (0x91, "TEC_raw",         "RW",   0x0019,   "Mfr: TEC raw signed 16-bit value"),
 ]
 
+# Implemented register addresses (for full-scan N/I filtering)
+_IMPLEMENTED = frozenset(r for r, *_ in REGISTERS)
+
+# All 256 addresses — unimplemented ones added as N/I stubs for --full mode
+def _all_256_registers():
+    full = list(REGISTERS)
+    for addr in range(0x100):
+        if addr not in _IMPLEMENTED:
+            full.append((addr, "Reserved", "N/I", None, "Not implemented / reserved"))
+    full.sort(key=lambda x: x[0])
+    return full
+
 # ---------------------------------------------------------------------------
 # Test runner
 # ---------------------------------------------------------------------------
@@ -202,6 +214,7 @@ PASS = "PASS"
 FAIL = "FAIL"
 SKIP = "SKIP"
 WARN = "WARN"
+NI   = "N/I"
 
 COL_WIDTHS = (4, 16, 6, 7, 7, 7, 40)
 HEADER = ("Reg", "Name", "Access", "Read", "Write", "Verify", "Notes")
@@ -211,22 +224,32 @@ def fmt_row(*fields):
     return "  ".join(str(f).ljust(w) for f, w in zip(fields, COL_WIDTHS))
 
 
-def run_tests(spi, verbose=False):
+def run_tests(spi, verbose=False, full=False):
+    reg_list = _all_256_registers() if full else REGISTERS
     print()
     print("=" * 95)
-    print("  nano-ITLA Register Test  —  Pilot Photonics nanoITLA-01")
+    title = "nano-ITLA Full 256-Register Scan" if full else "nano-ITLA Register Test"
+    print(f"  {title}  —  Pilot Photonics nanoITLA-01")
     print("=" * 95)
     print(fmt_row(*HEADER))
     print("-" * 95)
 
     results = []
-    passed = failed = skipped = warned = 0
+    passed = failed = skipped = warned = ni_count = 0
 
-    for reg, name, access, test_val, desc in REGISTERS:
+    for reg, name, access, test_val, desc in reg_list:
         read_result = "—"
         write_result = "—"
         verify_result = "—"
         notes = ""
+
+        # ── N/I (reserved/unimplemented) ─────────────────────────────────────
+        if access == "N/I":
+            row = fmt_row(f"0x{reg:02X}", name, access, "—", "—", NI, desc[:COL_WIDTHS[-1]])
+            print(row)
+            results.append((reg, name, NI))
+            ni_count += 1
+            continue
 
         # ── READ ────────────────────────────────────────────────────────────
         try:
@@ -312,7 +335,9 @@ def run_tests(spi, verbose=False):
             print(f"      note: {notes}")
 
     print("-" * 95)
-    print(f"  TOTAL: {len(results)}   PASS: {passed}   FAIL: {failed}   WARN: {warned}   SKIP: {skipped}")
+    tested = len(results) - ni_count
+    ni_str = f"   N/I: {ni_count}" if ni_count else ""
+    print(f"  TOTAL: {len(results)}   TESTED: {tested}   PASS: {passed}   FAIL: {failed}   WARN: {warned}   SKIP: {skipped}{ni_str}")
     print("=" * 95)
     print()
     return failed == 0
@@ -328,6 +353,7 @@ def main():
     parser.add_argument("--baud",    type=int, default=115200, help="Baud rate (default 115200)")
     parser.add_argument("--timeout", type=float, default=0.5,  help="Read timeout seconds (default 0.5)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print extra detail on failures")
+    parser.add_argument("--full", action="store_true", help="Scan all 256 registers (marks unimplemented as N/I)")
     args = parser.parse_args()
 
     import time
@@ -338,7 +364,7 @@ def main():
     print(f"UART {args.port}  baud={args.baud}  timeout={args.timeout}s")
 
     try:
-        ok = run_tests(ser, verbose=args.verbose)
+        ok = run_tests(ser, verbose=args.verbose, full=args.full)
     finally:
         ser.close()
 
