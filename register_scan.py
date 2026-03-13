@@ -61,7 +61,7 @@ REGISTER_MAP = [
     (0x0D, 'IOCap',         'RW',  'I/O capability'),
     (0x0E, 'EAC',           'RW',  'Extended access control'),
     (0x0F, 'EA',            'RO',  'Extended access data'),
-    (0x10, 'NOOP',          'RW',  'Write returns execution error by design'),
+    (0x10, 'EA_DATA',       'RO',  'Extended access data read port (write returns ERO by design — read-only)'),
     (0x11, 'Reserved',      'N/I', 'Reserved'),
     (0x12, 'Reserved',      'N/I', 'Reserved'),
     (0x13, 'Reserved',      'N/I', 'LstResp (deprecated, not implemented)'),
@@ -114,8 +114,8 @@ REGISTER_MAP = [
     (0x3F, 'Reserved',      'N/I', 'Reserved'),
     (0x40, 'LF1',           'RO',  'Laser frequency – THz part'),
     (0x41, 'LF2',           'RO',  'Laser frequency – GHz×10 part'),
-    (0x42, 'LF1Min_THz',    'RO',  'Min lasing freq – THz (Table A)'),
-    (0x43, 'LF1Max_THz',    'RO',  'Max lasing freq – THz (Table A)'),
+    (0x42, 'OOP',           'RW',  'Optical output power setpoint (0.01 dBm)'),
+    (0x43, 'CTemp',         'RW',  'Case temperature (0.01 °C, signed)'),
     (0x44, 'Reserved',      'N/I', 'Reserved'),
     (0x45, 'Reserved',      'N/I', 'Reserved'),
     (0x46, 'Reserved',      'N/I', 'Reserved'),
@@ -129,12 +129,12 @@ REGISTER_MAP = [
     (0x4E, 'Reserved',      'N/I', 'Reserved'),
     # ── §9.7  Module capabilities ────────────────────────────────────────────
     (0x4F, 'FTFR_MHz',      'RO',  'Fine tune freq range (MHz)'),
-    (0x50, 'MinFreq_THz',   'RO',  'Min lasing freq – THz (cap97)'),
-    (0x51, 'MinFreq_G10',   'RO',  'Min lasing freq – GHz×10 (cap97)'),
-    (0x52, 'MaxFreq_THz',   'RO',  'Max lasing freq – THz (cap97)'),
-    (0x53, 'MaxFreq_G10',   'RO',  'Max lasing freq – GHz×10 (cap97)'),
-    (0x54, 'LastFreq_THz',  'RO',  'Last channel freq – THz'),
-    (0x55, 'LastFreq_G10',  'RO',  'Last channel freq – GHz×10'),
+    (0x50, 'OPSL',          'RO',  'Min optical output power setpoint (0.01 dBm, signed) §9.7'),
+    (0x51, 'OPSH',          'RO',  'Max optical output power setpoint (0.01 dBm, signed) §9.7'),
+    (0x52, 'LFL1',          'RO',  'Min lasing freq – THz part (cap97) §9.7'),
+    (0x53, 'LFL2',          'RO',  'Min lasing freq – GHz×10 part (cap97) §9.7'),
+    (0x54, 'LFH1',          'RO',  'Max lasing freq – THz part (cap97) §9.7'),
+    (0x55, 'LFH2',          'RO',  'Max lasing freq – GHz×10 part (cap97) §9.7'),
     (0x56, 'LGrid10',       'RO',  'Laser grid step (GHz×10)'),
     # ── §9.8  Command block ──────────────────────────────────────────────────
     (0x57, 'Currents',      'AEA', '9.8.1: Module currents array (mA×10) via AEA'),
@@ -155,12 +155,12 @@ REGISTER_MAP = [
     (0x64, 'WFreqTh2',      'RW',  '9.5 ext: Warning frequency threshold 2'),
     # ── §9.6 ext  Channel / FCF extensions ───────────────────────────────────
     (0x65, 'ChannelH',      'RW',  'Laser channel high word'),
-    (0x66, 'ChannelL',      'RW',  'Laser channel low word (current channel index)'),
-    (0x67, 'FCF3_MHz',      'RW',  'First channel freq – MHz part'),
-    (0x68, 'Grid2_MHz',     'RO',  'Grid 2 – fine grid part (MHz, read-only in scan)'),
-    (0x69, 'Reserved',      'N/I', 'Reserved'),
-    (0x6A, 'Reserved',      'N/I', 'Reserved'),
-    (0x6B, 'Reserved',      'N/I', 'Reserved'),
+    (0x66, 'Grid2',         'RW',  'Fine grid spacing (MHz, signed) §9.6 ext'),
+    (0x67, 'FCF3_MHz',      'RW',  'First channel freq – MHz fine part'),
+    (0x68, 'LF3',           'RO',  'Laser freq – MHz fine part (LF3, read-only) §9.6'),
+    (0x69, 'LFL3',          'RO',  'Min lasing freq – MHz fine part (read-only) §9.7'),
+    (0x6A, 'LFH3',          'RO',  'Max lasing freq – MHz fine part (read-only) §9.7'),
+    (0x6B, 'LGrid2',        'RO',  'Grid step – MHz fine part (read-only) §9.7'),
     (0x6C, 'Reserved',      'N/I', 'Reserved'),
     (0x6D, 'Reserved',      'N/I', 'Reserved'),
     (0x6E, 'Reserved',      'N/I', 'Reserved'),
@@ -199,12 +199,13 @@ REGISTER_MAP = [
     (0x8E, 'RING2_tuner',   'RW',  'Mfr: Ring-2 tuner (÷100 → V, e.g. 200=2.00 V)'),
     (0x8F, 'SOA_tuner',     'RW',  'Mfr: SOA current tuner (÷100 → V)'),
     (0x90, 'GainBias_tuner','RW',  'Mfr: Gain bias tuner (÷100 → V)'),
-    (0x91, 'TEC_raw',       'RO',  'Mfr: TEC current – live ADC readback (overloaded write: mode switch)'),
+    (0x91, 'TEC_raw',       'RW',  'Mfr: TEC setpoint (raw signed 16-bit, RW)'),
+    (0x92, 'DirectCtrl',   'RW',  'Mfr: Direct control mode (write 0x4142/0x4344/0x9036=enable, 0x0000=disable)'),
 ]
 
 # Pad remaining addresses 0x92–0xFF as Reserved N/I
 _defined = {addr for addr, *_ in REGISTER_MAP}
-for _addr in range(0x92, 0x100):
+for _addr in range(0x93, 0x100):
     REGISTER_MAP.append((_addr, 'Reserved', 'N/I', 'Reserved'))
 
 assert len(REGISTER_MAP) == 256, f'Expected 256 entries, got {len(REGISTER_MAP)}'
@@ -395,10 +396,10 @@ SECTIONS = {
     0x59: '§ 9.8  Dither Control',
     0x5D: '§ 9.8  Thermal Boundary (TBTF)',
     0x5F: '§ 9.8  Age Model',
-    0x62: '§ 9.6 / 9.5 ext  Fine-tune, Channel & Frequency Extensions',
-    0x69: '§ Reserved (0x69–0x7F)',
-    0x80: '§ Manufacturer Debug Window (0x80–0x91)',
-    0x92: '§ Reserved (0x92–0xFF)',
+    0x62: '§ 9.6 / 9.5 / 9.7 ext  Fine-tune, Channel, Frequency & Grid Extensions',
+    0x6C: '§ Reserved (0x6C–0x7F)',
+    0x80: '§ Manufacturer Debug Window (0x80–0x92)',
+    0x93: '§ Reserved (0x93–0xFF)',
 }
 
 
