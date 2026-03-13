@@ -247,7 +247,7 @@ def run_tests(spi, verbose=False, full=False):
         if access == "N/I":
             row = fmt_row(f"0x{reg:02X}", name, access, "—", "—", NI, desc[:COL_WIDTHS[-1]])
             print(row)
-            results.append((reg, name, NI))
+            results.append((reg, name, access, "—", "—", "—", desc[:COL_WIDTHS[-1]], NI))
             ni_count += 1
             continue
 
