@@ -145,7 +145,7 @@ REGISTERS = [
     (0x0D, "IOCap",           "RW",   0x0000,   "I/O capability"),
     (0x0E, "EAC",             "RW",   0x0000,   "Extended access control"),
     (0x0F, "EA",              "RO",   None,     "Extended access data"),
-    (0x10, "NOOP",            "RW",   0x0000,   "No-operation (writable NOP)"),
+    (0x10, "EA_DATA",         "RO",   None,     "Extended access data read port (write returns ERO by design — read-only)"),
     (0x14, "DLConfig",        "RW",   0x0000,   "Dither/lock config"),
     (0x15, "DLStatus",        "RO",   None,     "Dither/lock status"),
     (0x20, "StatusF",         "RO",   None,     "Fatal status (write-to-clear; read-only in test)"),
@@ -163,20 +163,20 @@ REGISTERS = [
     (0x31, "PWR",             "RW",   0x0064,   "Laser output power (0.01 dBm)"),
     (0x32, "ResEna",          "RW",   0x0000,   "Resource enable"),
     (0x33, "MCB",             "RW",   0x0000,   "Module control byte"),
-    (0x34, "Grid",            "RW",   0x0019,   "Channel grid spacing (GHz×10)"),
+    (0x34, "Grid",            "RW",   0x01F4,   "Channel grid spacing (GHz×10); 500=50 GHz, 25=2.5 GHz"),
     (0x35, "FCF1_THz",        "RW",   0x00C1,   "First channel freq – THz part (193)"),
     (0x36, "FCF2_G10",        "RW",   0x1194,   "First channel freq – GHz×10 (450.0)"),
     (0x40, "LF1",             "RO",   None,     "Laser frequency – THz part"),
     (0x41, "LF2",             "RO",   None,     "Laser frequency – GHz×10 part"),
-    (0x42, "LF1Min_THz",      "RO",   None,     "Min lasing freq – THz (Table A)"),
-    (0x43, "LF1Max_THz",      "RO",   None,     "Max lasing freq – THz (Table A)"),
+    (0x42, "OOP",             "RW",   0x0064,   "Optical output power setpoint (0.01 dBm)"),
+    (0x43, "CTemp",           "RW",   0x09C4,   "Case temperature (0.01 °C, signed; 0x09C4=25.00 °C)"),
     (0x4F, "FTFR_MHz",        "RO",   None,     "Fine tune freq range (MHz)"),
-    (0x50, "MinFreq_THz",     "RO",   None,     "Min lasing freq – THz (cap97)"),
-    (0x51, "MinFreq_G10",     "RO",   None,     "Min lasing freq – GHz×10 (cap97)"),
-    (0x52, "MaxFreq_THz",     "RO",   None,     "Max lasing freq – THz (cap97)"),
-    (0x53, "MaxFreq_G10",     "RO",   None,     "Max lasing freq – GHz×10 (cap97)"),
-    (0x54, "LastFreq_THz",    "RO",   None,     "Last channel freq – THz"),
-    (0x55, "LastFreq_G10",    "RO",   None,     "Last channel freq – GHz×10 (note: uses current GRID register)"),
+    (0x50, "OPSL",            "RO",   None,     "Min optical output power setpoint (0.01 dBm, signed) §9.7"),
+    (0x51, "OPSH",            "RO",   None,     "Max optical output power setpoint (0.01 dBm, signed) §9.7"),
+    (0x52, "LFL1",            "RO",   None,     "Min lasing freq – THz part (cap97) §9.7"),
+    (0x53, "LFL2",            "RO",   None,     "Min lasing freq – GHz×10 part (cap97) §9.7"),
+    (0x54, "LFH1",            "RO",   None,     "Max lasing freq – THz part (cap97) §9.7"),
+    (0x55, "LFH2",            "RO",   None,     "Max lasing freq – GHz×10 part (cap97) §9.7"),
     (0x56, "LGrid10",         "RO",   None,     "Laser grid step (GHz×10)"),
     # ── §9.8  Command block ──────────────────────────────────────────────────
     (0x57, "Currents",        "AEA",  None,     "9.8.1: Module currents array (mA×10) via AEA"),
@@ -194,10 +194,13 @@ REGISTERS = [
     # ── §9.5 ext  Frequency threshold extensions ─────────────────────────────
     (0x63, "FFreqTh2",        "RW",   0x0064,   "9.5 ext: Fatal frequency threshold 2"),
     (0x64, "WFreqTh2",        "RW",   0x0032,   "9.5 ext: Warning frequency threshold 2"),
-    (0x65, "ChannelH",        "RW",   0x0000,   "Laser channel (high word)"),
-    (0x66, "ChannelL",        "RW",   0x003C,   "Laser channel – ch60 (first populated LUT row with real cal data)"),
-    (0x67, "FCF3_MHz",        "RW",   0x0000,   "First channel freq – MHz part"),
-    (0x68, "Grid2_MHz",       "RO",   None,     "Grid 2 – MHz offset (read-only in test)"),
+    (0x65, "ChannelH",        "RW",   0x0000,   "Laser channel high word (staged; committed on 0x30 write)"),
+    (0x66, "Grid2",           "RW",   0x0000,   "Fine grid spacing (MHz, signed) §9.6 ext"),
+    (0x67, "FCF3_MHz",        "RW",   0x0000,   "First channel freq – MHz fine part"),
+    (0x68, "LF3",             "RO",   None,     "Laser freq – MHz fine part (LF3, read-only) §9.6"),
+    (0x69, "LFL3",            "RO",   None,     "Min lasing freq – MHz fine part (read-only) §9.7"),
+    (0x6A, "LFH3",            "RO",   None,     "Max lasing freq – MHz fine part (read-only) §9.7"),
+    (0x6B, "LGrid2",          "RO",   None,     "Grid step – MHz fine part (read-only) §9.7"),
     # ── Manufacturer-specific LUT / PD window (0x80–0x8B) ──────────────────
     (0x80, "V1_lut",          "RO",   None,     "Mfr: Ring-1 V – LUT setpoint (÷100 → V)"),
     (0x81, "V2_lut",          "RO",   None,     "Mfr: Ring-2 V – LUT setpoint (÷100 → V)"),
@@ -217,7 +220,8 @@ REGISTERS = [
     (0x8E, "RING2_tuner",     "RW",   0x00C8,   "Mfr: Ring-2 tuner (÷100 → V, e.g. 200=2.00 V)"),
     (0x8F, "SOA_tuner",       "RW",   0x0064,   "Mfr: SOA current tuner (÷100 → V)"),
     (0x90, "GainBias_tuner",  "RW",   0x0064,   "Mfr: Gain bias tuner (÷100 → V)"),
-    (0x91, "TEC_raw",         "RO",   None,     "Mfr: TEC current – live ADC readback (overwritten by itla_update_hw_telemetry)"),
+    (0x91, "TEC_raw",         "RW",   0x0000,   "Mfr: TEC setpoint (raw signed 16-bit, RW)"),
+    (0x92, "DirectCtrl",     "RW",   0x0000,   "Mfr: Direct control mode (write 0x4142/0x4344/0x9036=enable, 0x0000=disable)"),
 ]
 
 # Implemented register addresses (for full-scan N/I filtering)
@@ -414,9 +418,9 @@ def run_channel_sweep(ser, verbose=False):
             n_zero += 1
         else:
             try:
-                # Write channel number into ChannelH (0x65=0) and ChannelL (0x66=ch)
+                # Write channel: stage ChannelH (0x65=0) then commit via Channel (0x30=ch)
                 spi_write(ser, 0x65, 0)
-                spi_write(ser, 0x66, ch)
+                spi_write(ser, 0x30, ch)
                 time.sleep(0.02)   # 20 ms — let firmware apply LUT in main loop
 
                 # Read LUT setpoint mirrors
