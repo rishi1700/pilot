@@ -26,7 +26,6 @@ Analog Devices Software License Agreement.
 #include "DioLib.h"
 #include "UrtLib.h"
 #include "iramCode.h"
-#include <string.h>
 
 #include "WdtLib.h"
 #include "nano_globals.h"
@@ -91,7 +90,6 @@ uint16_t AdcData16b[ADC_DATA_LENGTH];
 #define RX_CLR 0x02
 #define TX_CLR 0x04
 
-static char printBuffer[MAX_STRING_LENGTH] = "";
 extern volatile uint8_t tmr0_trig;
 volatile uint8_t comRx1 = 0; // Variable used to read UART Rx buffer contents into
 volatile uint32_t TxDone = 0;
@@ -558,11 +556,8 @@ int main(void)
   ADuCM430Setup();
   Setup();
 
-  sprintf(printBuffer, "....nano-ITLA....\n\r");
-  UrtSendString(pADI_UART, printBuffer);
-
-  sprintf(printBuffer, "Enter command \n\r");
-	UrtSendString(pADI_UART, printBuffer);
+  UrtSendString(pADI_UART, "....nano-ITLA....\n\r");
+  UrtSendString(pADI_UART, "Enter command \n\r");
 	delay(100);
     /* connect Vdc0 <---------------> AIN0 on the EVB Board */
     //VdacInit();
@@ -639,7 +634,7 @@ int main(void)
 				actual=actual+output;
 				//VDacWrAutoSync(0, (int)(output+32767)*4095/2500);
 				//VDacWrAutoSync(8, (int)(output+32767)*4095/2500);
-				PWM = (int)((1220-output)*4095/2500.0);
+				PWM = (int)((1220.0f - output) * 4095.0f / 2500.0f);
 				if(PWM >= 2600){								
 					//PWM = 4095;										//the best without multimeter. use 2600
 					PWM = 2600;
@@ -765,7 +760,7 @@ void V_dac_write(int j, int i)
 void SetSOA(float Current)
 {
 	    int Data;
-	    Data = (int)((float)(3.0225 * Current) - 16.605);
+	    Data = (int)((3.0225f * Current) - 16.605f);
 			if (Data >0){
 				V_dac_write(5, Data);
 			}
@@ -777,7 +772,7 @@ void SetSOA(float Current)
 void SetGain(float Current)
 {
 			int Data;
-	    Data =(int)(((float)(25.779 * Current) + 168.93) - 168);
+	    Data = (int)(((25.779f * Current) + 168.93f) - 168.0f);
 			
 		  if (Data >0){
 				I_dac_write(Data);
@@ -790,7 +785,7 @@ void SetGain(float Current)
 void SetR1(float Voltage)
 {			
 			int Data;
-	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
+	    Data = (int)((161.51f * Voltage) - 5.1112f);
 	    if (Data >0){
 				V_dac_write(1, Data);
 			}
@@ -802,7 +797,7 @@ void SetR1(float Voltage)
 void SetR2(float Voltage)
 {
 			int Data;
-	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
+	    Data = (int)((161.51f * Voltage) - 5.1112f);
 		  if (Data >0){
 				V_dac_write(3, Data);
 			}
@@ -814,7 +809,7 @@ void SetR2(float Voltage)
 void SetPhase(float Voltage)
 {	
 			int Data;
-	    Data =(int)((float)(161.51 * Voltage) - 5.1112);
+	    Data = (int)((161.51f * Voltage) - 5.1112f);
 			if (Data >0){
 				V_dac_write(7, Data);
 			}
@@ -826,7 +821,7 @@ void SetPhase(float Voltage)
 void SetTemp(float Temperature)
 {
 			int Data;
-	    Data =(int)((float)(-27.287 * Temperature) + 1957.3);
+	    Data = (int)((-27.287f * Temperature) + 1957.3f);
 			setpoint = Data;
 
 }

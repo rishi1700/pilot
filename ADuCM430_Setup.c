@@ -87,9 +87,11 @@ void ADuCM430Setup(void)
     DioCfgPin(pADI_GPIO2, PIN0, P2_2_GPIO);
     DioOenPin(pADI_GPIO2, PIN0, 1);
 
-    UrtPrint("Binary Compiled at %s", __TIMESTAMP__);
-    UrtPrint("-------> Init ");
-   UrtPrint("All Done!\r\n");
+    UrtSendString(pADI_UART, "Binary Compiled at ");
+    UrtSendString(pADI_UART, __TIMESTAMP__);
+    UrtSendString(pADI_UART, "\r\n");
+    UrtSendString(pADI_UART, "-------> Init ");
+    UrtSendString(pADI_UART, "All Done!\r\n");
 }
 
 /**
